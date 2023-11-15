@@ -109,3 +109,27 @@ st_crs(mpsz3414)
 ```
 
 ### Transforming the projection of preschool from WGS84 to SVY21
+
+In geospatial analytics, it is very common for us to transform the original data from geographic coordinate system to projected coordinate system. This is because geographic coordinate system is not appropriate if the analysis need to use distance or/and area measurements.
+
+Check the coordinate system for the preschool dataframe
+
+```{r}
+st_geometry(preschool)
+```
+
+st_set_crs() is not appropriate here because we need to reproject the dataframe from one coordinate system to another coordinate system mathematically.
+
+This can be performed using st_transform()
+
+```{r}
+preschool3414 <- st_transform(preschool, crs = 3414)
+```
+
+Double-check the coordinate system for preschool3414
+
+```{r}
+st_geometry(preschool3414)
+```
+
+## Importing and Converting Aspatial Data
