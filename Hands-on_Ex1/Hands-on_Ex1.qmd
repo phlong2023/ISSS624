@@ -18,6 +18,94 @@ pacman::p_load(sf, tidyverse)
 
 ### Importing polygon features data
 
+Reading the Master Planning 2014 Subzone shapefile into a dataframe
+
 ```{r}
 mpsz <- st_read(dsn = "data/geospatial", layer = "MP14_SUBZONE_WEB_PL")
 ```
+
+Reading the CyclingPath shapefile into a dataframe
+
+```{r}
+cyclingpath <- st_read(dsn = "data/geospatial",layer = 'CyclingPathGazette')
+```
+
+Read the Pre-School Locations kml file into a dataframe using a complete path
+
+```{r}
+preschool <- st_read('data/geospatial/PreSchoolsLocation.kml')
+```
+
+## Checking the Content of a Simple Feature DataFrame
+
+### Working with st_geometry()
+
+Using st_geometry() to retrieve basic information of the dataframe
+
+```{r}
+st_geometry(mpsz)
+```
+
+### Working with glimpse()
+
+Use glimpse() to get the data types of each column and some of their values
+
+```{r}
+glimpse(mpsz)
+```
+
+### Working with head()
+
+head() lets us inspect the top n rows of the dataframe
+
+```{r}
+head(mpsz, n= 5)
+```
+
+## Plotting Geospatial Data
+
+The default plot of an sf object is a multi-plot of all attributes, up to a reasonable maximum. This can be seen using the plot() function.
+
+```{r}
+plot(mpsz)
+```
+
+We can choose to plot only the geometry (outline) by using st_geometry()
+
+```{r}
+plot(st_geometry(mpsz))
+```
+
+We can also choose the specific attribute of the dataframe we would like to plot by addressing it in the R dataframe
+
+```{r}
+plot(mpsz['PLN_AREA_N'])
+```
+
+## Working with Projection
+
+Map projection is an important property of a geospatial data. In order to perform geoprocessing using two geospatial data, we need to ensure that both geospatial data are projected using similar coordinate system.
+
+The process of projecting one dataframe from one coordinate system to another is called **projection transformation**.
+
+### Assigning EPSG code to a simple feature data frame
+
+Identifying the coordinate system of a dataframe using st_crs()
+
+```{r}
+st_crs(mpsz)
+```
+
+In order to assign the correct EPSG code, use st_set_crs()
+
+```{r}
+mpsz3414 <- st_set_crs(mpsz,3414)
+```
+
+Double check the new ESPG using st_crs()
+
+```{r}
+st_crs(mpsz3414)
+```
+
+### Transforming the projection of preschool from WGS84 to SVY21
