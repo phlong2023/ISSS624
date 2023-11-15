@@ -133,3 +133,119 @@ st_geometry(preschool3414)
 ```
 
 ## Importing and Converting Aspatial Data
+
+### Importing the Aspatial Data
+
+We can read the listings csv into an R tibble dataframe using read_csv() of readr
+
+```{r}
+listings <- read_csv('data/aspatial/listings.csv')
+```
+
+We can use list(), instead of glimpse() in order to see the columns, data types, and some rows of the new dataframe
+
+```{r}
+list(listings)
+```
+
+### Creating a simple feature dataframe from an aspatial dataframe
+
+st_as_sf() can be used to convert the listing dataframe into a simple feature dataframe. Note that:
+
+1.  coords argument requires the column name of the x-coordinates first (longitude) then the column name of the y-coordinates (latitude)
+2.  crs argument requires the specific coordinates system. As we suspect the coordinate system of listings to be WGS84, this would be crs = 4326 . Singapore's EPSG code is 3414 as we have used before.
+3.  We use %\>% in dplyr to nest st_transform() to reproject the new simple feature dataframe into SVY21 (EPSG: 3414) coordinates system.
+
+```{r}
+listings_sf <- st_as_sf(listings,
+                        coords = c('longitude','latitude'),
+                        crs=4326)%>%
+  st_transform(crs=3414)
+```
+
+glimpse() can be used to view the new simple feature dataframe, its data types, and some row values. Notice that a new column called geometry has been added and longitude and latitude have been dropped.
+
+```{r}
+glimpse(listings_sf)
+```
+
+## Geoprocessing with sf package
+
+The sf package offers a wide range of geoprocessing (GIS) functions.
+
+In this section, you will learn how to perform two commonly used geoprocessing functions, namely [buffering](https://www.gislounge.com/buffers-in-gis/) and point in polygon count.
+
+### Buffering
+
+**The scenario:**
+
+The authority is planning to upgrade the exiting cycling path. To do so, they need to acquire 5 metres of reserved land on the both sides of the current cycling path. **You are tasked to determine the extend of the land need to be acquired and their total area**.
+
+**The solution**
+
+We can use st_buffer() to compute the 5-meter buffers around cycling paths
+
+```{r}
+buffer_cycling <- st_buffer(cyclingpath, dist =5,
+                            nQuadSegs = 30)
+```
+
+We can then calculate the area of each of the buffers using st_area()
+
+```{r}
+buffer_cycling$AREA <- st_area(buffer_cycling)
+```
+
+Lastly, we can sum up all the areas of the buffers to derive the total land involved
+
+```{r}
+sum(buffer_cycling$AREA)
+```
+
+### Point-in-polygon count
+
+**The** **scenario**:
+
+A pre-school service group want to find out the numbers of pre-schools in each Planning Subzone.
+
+**The solution:**
+
+We can: first, identify pre-schools located inside each Planning Subzone by using st_intersects(), second, length() can be used to calculate number of pre-schools that falls inside each planning subzone.
+
+```{r}
+mpsz3414$`PreSch Count` <- lengths(st_intersects(mpsz3414, preschool3414))
+```
+
+summary() can be used to check the summary statistics of the newly created PreSch Count column in mpsz3414
+
+```{r}
+summary(mpsz3414$`PreSch Count`)
+```
+
+top_n() can be used to list the top n planning subzone with the highest number of pre-school
+
+```{r}
+top_n(mpsz3414,1,`PreSch Count`)
+```
+
+We can also calculate the density of preschool by planning subzone:
+
+First, st_area() can be used to derive the area of each planning subzone.
+
+```{r}
+mpsz3414$AREA <- mpsz3414%>%
+  st_area()
+```
+
+Next, mutate() can be used to compute the density by using the previously created 'PreSch Count' and 'AREA' columns
+
+```{r}
+mpsz3414 <- mpsz3414 %>%
+  mutate(`PreSch Density` = (`PreSch Count`/AREA)*1000000)
+```
+
+We can extract the planning subzone with the highest preschool density using top_n()
+
+```{r}
+top_n(mpsz3414,1,`PreSch Density`)
+```
