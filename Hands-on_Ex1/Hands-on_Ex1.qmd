@@ -249,3 +249,38 @@ We can extract the planning subzone with the highest preschool density using top
 ```{r}
 top_n(mpsz3414,1,`PreSch Density`)
 ```
+
+# Exploratory Data Analysis (EDA)
+
+hist() can be used to plot a histogram to reveal the distribution of PreSch Density
+
+```{r}
+hist(mpsz3414$`PreSch Density`)
+```
+
+ggplot2 allows us to draw a more complex plot with more customization option
+
+```{r}
+ggplot(data = mpsz3414,
+       aes(x=as.numeric(`PreSch Density`)))+
+  geom_histogram(bins=20,
+                 color='black',
+                 fill = 'light blue')+
+  labs(title = 'Are pre-school evenly distributed in Singapore?',
+       subtitle = 'There are many planning sub-zones with a single pre-school while \n there are some planning sub-zones with at least 20 pre-schhools',
+       x = 'Pre-school density (per km sq)',
+       y = 'Frequency')
+```
+
+We can also create a scatter plot to display the relationship between Pre-School Density and Pre-School Count
+
+```{r}
+ggplot(data = mpsz3414,
+       aes(x = as.numeric(`PreSch Density`),
+           y = `PreSch Count`))+
+  geom_point(color = 'black')+
+  xlim(0, 40)+
+  ylim(0, 40)+
+  labs(x = 'Pre-school density (per km sq',
+       y = 'Pre-school count')
+```
