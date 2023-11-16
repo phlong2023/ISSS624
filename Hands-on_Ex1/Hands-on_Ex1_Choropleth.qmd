@@ -1,0 +1,63 @@
+---
+title: "Choropleth Mapping with R"
+---
+
+## Overview
+
+Choropleth mapping involves the symbolisation of enumeration units, such as countries, provinces, states, counties or census units, using area patterns or graduated colors. For example, a social scientist may need to use a choropleth map to portray the spatial distribution of aged population of Singapore by Master Plan 2014 Subzone Boundary.
+
+This can be done using the [tmap](https://r-tmap.github.io/tmap/) package. We can load this and other required packages (sf, tidyverse) using the code below.
+
+```{r}
+pacman::p_load(sf, tidyverse, tmap)
+```
+
+## Importing Data into R
+
+### The Data
+
+Two datasets will be used:
+
+1.  Master Plan 2014 Subzone Boundary (Web) in ESRI shapefile format. It consists of geographical boundary of Singapore at the planning subzone level and is babsed on the URA Master Plan 2014.
+2.  Singapore Residents by Planning Area/Subzone, Age Grouu, Sex, and Type of Dwelling, June 2011-2020 csv format. This is aspatial data. Its PA and SZ fields can be used to geocode to the Master Plan 2014 Subzone Boundary (Web) shapefile.
+
+### Importing Geospatial Data into R
+
+st_read() can be used to read the Master Plan 2014 shapefile into an R dataframe.
+
+```{r}
+mpsz <- st_read(dsn = 'data/geospatial',
+                layer = 'MP14_SUBZONE_WEB_PL')
+```
+
+glimpse() and head() can be used to look at the data types and first few rows of data
+
+```{r}
+glimpse(mpsz)
+```
+
+```{r}
+head(mpsz, 5)
+```
+
+### Importing Attribute Data into R
+
+For the resident population data, read_csv() will be used as it is stored as a csv
+
+```{r}
+popdata <- read_csv('data/aspatial/respopagesexfa2011to2020.csv')
+```
+
+## Data Preparation
+
+Before a thematic map can be prepared, you are required to prepare a data table with year 2020 values. The data table should include the variables PA, SZ, YOUNG, ECONOMY ACTIVE, AGED, TOTAL, DEPENDENCY.
+
+This table would have the rows be each unique PA and SZ and with the following new columns:
+
+1.  YOUNG: number of people from age group 0-4 to age group 20-24
+2.  ECONOMY ACTIVE: number of people from age group 25-29 to age group 60-64
+3.  AGED: number of people age group 65 +
+4.  TOTAL: number of people in all age groups
+5.  DEPENDENCY: the ratio between YOUNG + AGED against ECONOMY ACTIVE
+
+### Data Wrangling
