@@ -8,9 +8,9 @@ website:
       - text: Hands-on Exercises
         menu: 
           - text: Hands-on Exercise 1 - SF and EDA
-            href: Hands-on_Ex1/Hands-on_Ex1_SFEDA.qmd
+            href: Hands-on_Ex/Hands-on_Ex1/Hands-on_Ex1_SFEDA.qmd
           - text: Hands-on Exercise 1 - Choropleth Mapping
-            href: Hands-on_Ex1/Hands-on_Ex1_Choropleth.qmd
+            href: Hands-on_Ex/Hands-on_Ex1/Hands-on_Ex1_Choropleth.qmd
     right:
       - href: index.qmd
         text: Home

@@ -11,7 +11,3 @@ pacman::p_load(tmap, tidyverse, sf)
 ```
 
 Reading the **Master Plan 2019 Planning Area Boundary (No Sea)** map into R
-
-```{r}
-mpsz <- st_read(dsn = 'data/')
-```

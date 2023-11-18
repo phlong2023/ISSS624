@@ -123,7 +123,7 @@ qtm(mpsz_pop2020,
 
 ### Creating a choropleth map by using tmap's elements
 
-Despite its usefulness of drawing a choropleth map quickly and easily, the disadvantge of *qtm()* is that it makes aesthetics of individual layers harder to control. To draw a high quality cartographic choropleth map as shown in the figure below, **tmap**\'s drawing elements should be used.
+Despite its usefulness of drawing a choropleth map quickly and easily, the disadvantge of *qtm()* is that it makes aesthetics of individual layers harder to control. To draw a high quality cartographic choropleth map as shown in the figure below, **tmap**'s drawing elements should be used.
 
 ```{r}
 tm_shape(mpsz_pop2020)+
@@ -167,7 +167,7 @@ tm_shape(mpsz_pop2020)+
 
 Things to learn from *tm_polygons()*:
 
--   The default interval binning used to draw the choropleth map is called \"pretty\".
+-   The default interval binning used to draw the choropleth map is called "pretty".
 
 -   The default colour scheme used is `YlOrRd` of ColorBrewer.
 
