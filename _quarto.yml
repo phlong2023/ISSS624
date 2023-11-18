@@ -16,9 +16,9 @@ website:
           - text: In-class Exercise 1
             href: In-Class_ex/In-Class_Ex1/In-class_Ex1.html
     right:
-      - href: index.qmd
+      - href: index.html
         text: Home
-      - about.qmd
+      - about.html
 
 format:
   html:
