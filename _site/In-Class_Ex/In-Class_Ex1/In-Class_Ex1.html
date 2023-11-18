@@ -236,16 +236,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="extracting-the-study-data" class="level2">
 <h2 class="anchored" data-anchor-id="extracting-the-study-data">Extracting the study data</h2>
 <p>If we want to pick out the commuter data between 7 and 9 o clock on weekdays</p>
-<p><code>apc origtrip_7_9 &lt;- odbus %&gt;%   filter(DAY_TYPE == 'WEEKDAY') %&gt;%   filter(TIME_PER_HOUR &gt;=7 &amp; TIME_PER_HOUR &lt;=9) %&gt;%   group_by(ORIGIN_PT_CODE)%&gt;%   summarise(TRIPS = sum(TOTAL_TRIPS))}</code></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>origtrip_7_9 <span class="ot">&lt;-</span> odbus <span class="sc">%&gt;%</span>   <span class="fu">filter</span>(DAY_TYPE <span class="sc">==</span> <span class="st">'WEEKDAY'</span>) <span class="sc">%&gt;%</span>   <span class="fu">filter</span>(TIME_PER_HOUR <span class="sc">&gt;=</span><span class="dv">7</span> <span class="sc">&amp;</span> TIME_PER_HOUR <span class="sc">&lt;=</span><span class="dv">9</span>) <span class="sc">%&gt;%</span>   <span class="fu">group_by</span>(ORIGIN_PT_CODE)<span class="sc">%&gt;%</span>   <span class="fu">summarise</span>(<span class="at">TRIPS =</span> <span class="fu">sum</span>(TOTAL_TRIPS))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 <p>Two geospatial data will be used in this study:</p>
 <ol type="1">
 <li>BusStop: Location of bus stops in the last quarter of 2022</li>
 <li>MPSZ-2019: Master Plan Boundary (No Sea) of Singapore in 2019</li>
 </ol>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>busstop <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="at">dsn =</span> <span class="st">'data/geospatial'</span>,</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>                   <span class="at">layer =</span> <span class="st">'BusStop'</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> <span class="dv">3414</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>busstop <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="at">dsn =</span> <span class="st">'data/geospatial'</span>,</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>                   <span class="at">layer =</span> <span class="st">'BusStop'</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> <span class="dv">3414</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Reading layer `BusStop' from data source 
   `D:\phlong2023\ISSS624\In-Class_Ex\In-Class_Ex1\data\geospatial' 
@@ -258,9 +260,9 @@ Projected CRS: SVY21</code></pre>
 </div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>mpsz <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="at">dsn =</span> <span class="st">'data/geospatial'</span>,</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>                <span class="at">layer =</span> <span class="st">'MPSZ-2019'</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> <span class="dv">3414</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>mpsz <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="at">dsn =</span> <span class="st">'data/geospatial'</span>,</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>                <span class="at">layer =</span> <span class="st">'MPSZ-2019'</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> <span class="dv">3414</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Reading layer `MPSZ-2019' from data source 
   `D:\phlong2023\ISSS624\In-Class_Ex\In-Class_Ex1\data\geospatial' 
