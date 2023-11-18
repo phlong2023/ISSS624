@@ -44,7 +44,8 @@ odbus$DESTINATION_PT_CODE <- as.factor(odbus$DESTINATION_PT_CODE)
 
 If we want to pick out the commuter data between 7 and 9 o clock on weekdays
 
-```{r} origtrip_7_9 <- odbus %>%   filter(DAY_TYPE == 'WEEKDAY') %>%   filter(TIME_PER_HOUR >=7 & TIME_PER_HOUR <=9) %>%   group_by(ORIGIN_PT_CODE)%>%   summarise(TRIPS = sum(TOTAL_TRIPS))}
+```{r}
+origtrip_7_9 <- odbus %>%   filter(DAY_TYPE == 'WEEKDAY') %>%   filter(TIME_PER_HOUR >=7 & TIME_PER_HOUR <=9) %>%   group_by(ORIGIN_PT_CODE)%>%   summarise(TRIPS = sum(TOTAL_TRIPS))
 ```
 
 Two geospatial data will be used in this study:
