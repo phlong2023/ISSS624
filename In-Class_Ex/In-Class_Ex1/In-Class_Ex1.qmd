@@ -1,13 +1,65 @@
 ---
 title: "In-Class Exercise 1"
+date: '18 November 2023'
+date-modified: 'last-modified'
+format: html
+execute: 
+  eval: true # run the code live
+  echo: true # all code will appear
+  warning: false # hide all warnings
+editor: visual
 ---
 
 ## Getting Started
 
-Loading the necessary packages in R
+Loading the necessary packages in R:
+
+1.  tmap: for thematic mapping
+2.  sf: for geospatial data handling
+3.  tidyverse: for non-spatial data handling
 
 ```{r}
 pacman::p_load(tmap, tidyverse, sf)
 ```
 
-Reading the **Master Plan 2019 Planning Area Boundary (No Sea)** map into R
+## Preparing the Flow Data
+
+## Importing the OD Data
+
+Firstly we will import the *Passenger Volume by Origin Destination Bus Stops* data downloaed from LTA DataMall by using read_csv() of **readr** package
+
+```{r}
+# eval:false
+odbus <- read_csv('data/aspatial/origin_destination_bus_202308.csv')
+```
+
+We can convert ORIGIN_PT_CODE and DESTINATION_PT_CODE into Factor data, a data type unique to R, in order to speed up sorting
+
+```{r}
+odbus$ORIGIN_PT_CODE <- as.factor(odbus$ORIGIN_PT_CODE)
+odbus$DESTINATION_PT_CODE <- as.factor(odbus$DESTINATION_PT_CODE)
+```
+
+## Extracting the study data
+
+If we want to pick out the commuter data between 7 and 9 o clock on weekdays
+
+```{r} origtrip_7_9 <- odbus %>%   filter(DAY_TYPE == 'WEEKDAY') %>%   filter(TIME_PER_HOUR >=7 & TIME_PER_HOUR <=9) %>%   group_by(ORIGIN_PT_CODE)%>%   summarise(TRIPS = sum(TOTAL_TRIPS))}
+```
+
+Two geospatial data will be used in this study:
+
+1.  BusStop: Location of bus stops in the last quarter of 2022
+2.  MPSZ-2019: Master Plan Boundary (No Sea) of Singapore in 2019
+
+```{r}
+busstop <- st_read(dsn = 'data/geospatial',
+                   layer = 'BusStop') %>%
+  st_transform(crs = 3414)
+```
+
+```{r}
+mpsz <- st_read(dsn = 'data/geospatial',
+                layer = 'MPSZ-2019') %>%
+  st_transform(crs = 3414)
+```

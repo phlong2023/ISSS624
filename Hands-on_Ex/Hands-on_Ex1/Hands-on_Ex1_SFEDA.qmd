@@ -1,5 +1,13 @@
 ---
 title: "Hands-on Exercise 1: Geospatial Data Wrangling with R"
+date: '15 November 2023'
+date-modified: 'last-modified'
+format: html
+execute: 
+  eval: true
+  echo: true
+  warning: false
+editor: visual
 ---
 
 ## Overview
