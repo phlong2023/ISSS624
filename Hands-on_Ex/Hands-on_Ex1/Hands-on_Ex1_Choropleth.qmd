@@ -2,7 +2,7 @@
 title: "Hands-on Exercise 1: Choropleth Mapping with R"
 date: '16 November 2023'
 date-modified: 'last-modified'
-format: html # the format you want to save it in
+format: html
 execute: 
   eval: true # run the code live
   echo: true # all code will appear
