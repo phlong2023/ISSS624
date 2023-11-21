@@ -1,0 +1,194 @@
+---
+title: "Hands-on_Ex2_Spatial_Weights"
+date: '21 November 2023'
+date-modified: 'last-modified'
+format: html
+execute: 
+  eval: true
+  echo: true
+  warning: false
+editor: visual
+---
+
+## The Study Area and Data
+
+Two data sets will be used in this hands-on exercise:
+
+1.  Hunan County Boundary Layer: Geospatial data set in ESRI shapefile format
+2.  Hunan_2012.csv: Selected local development indicators in 2012
+
+### Getting started
+
+We will use the p_load() function of the pacman package to load the required packages: [spdep](https://r-spatial.github.io/spdep/) (for spatial weights), [sf](https://r-spatial.github.io/sf/), [tmap](https://r-tmap.github.io/tmap/), and [tidyverse](https://www.tidyverse.org/).
+
+```{r}
+pacman::p_load(spdep, tmap, sf, knitr, tidyverse)
+```
+
+## Getting the Data into the R Environment
+
+### Import Shapefile into R Environment
+
+st_read() can be used to import the Hunan shapefile into a sf dataframe
+
+```{r}
+hunan <- st_read(dsn = 'data/geospatial',
+                 layer = 'Hunan')
+```
+
+### Import Attribute Data (aspatial) into R Environment
+
+read_csv() can be used to import the Hunan_2012.csv into R as a data frame
+
+```{r}
+hunan2012 <- read_csv('data/aspatial/Hunan_2012.csv')
+```
+
+### Performing Relational Join
+
+Since both data frames have 88 rows and share the 'County' column, we can use left_join() to update the hunan sf data frame with with attribute fields of hunan2012 data frame.
+
+```{r}
+hunan <- left_join(hunan, hunan2012) %>%
+  select(1:4, 7, 15)
+```
+
+The left_join() argument automatically seeks out the shared field for joining. In this case, it is 'by = join_by(County)'.
+
+## Visualizing Regional Development Indicator
+
+we can prepare a basemap and a choropleth map showing the distribution of GDPPC 2012 by using qtm() of the tmap package.
+
+```{r}
+basemap <- tm_shape(hunan)+
+  tm_polygons() +
+  tm_text('NAME_3', size = 0.3) #A basemap is created showing the boundaries and names of counties in Hunan
+
+gdppc <- qtm(hunan, 'GDPPC') # A choropleth map showing the distribution of GDPPC in Hunan
+
+tmap_arrange(basemap, gdppc, asp = 1, ncol = 2) # Arranging basemap and gdppc along two columns
+```
+
+## Computing Contiguity Spatial Weights
+
+We can use poly2nb() of spep to compute contiguity weight matrices for the study area. This function builds a neighbours list based on regions with contiguous boundaries.
+
+In poly2nb(), you can pass TRUE or FALSE to the queen argument in order to indicate whether to use the queen method. The default is TRUE.
+
+### Computing (QUEEN) contiguity based neighbours
+
+```{r}
+wm_q <- poly2nb(hunan, queen = TRUE)
+summary(wm_q)
+```
+
+The summary report above shows that there are 88 area units in Hunan. The most connected area unit has 11 neighbours (area 85). There are two area units with only 1 neighbour (30 and 65).
+
+For each polygon in our polygon object, *wm_q* lists all neighboring polygons. To see the neighbors for the first polygon in the object, you can specify it similar to a list of list
+
+```{r}
+wm_q[[1]]
+```
+
+Polygon 1 has 5 neighbors. The numbers represent the polygon IDs as stored in hunan spdf class
+
+We can retrieve the county name of Polygon ID = 1 by specifying it its position in the hunan data fram
+
+```{r}
+hunan$County[1]
+```
+
+Similarly, you can extract the name of its neighbors using their Polygon ID in wm_q
+
+```{r}
+hunan$County[c(2,3,4,57,85)]
+```
+
+We can also retreive the GDPPC of these five counties
+
+```{r}
+nb1 <- wm_q[[1]]
+nb1_gdppc <- hunan$GDPPC[nb1]
+nb1_gdppc
+```
+
+Additionally, you can display the complete neighbor list using str() **However, this output will cut across several pages.**
+
+### Creating (ROOK) Contiguity Based Neighbours
+
+We can use Rook contiguity instead of Queen contiguity by passing FALSE to the queen argument of poly2nb
+
+```{r}
+wm_r <- poly2nb(hunan, queen = FALSE)
+summary(wm_r)
+```
+
+Similar to Queen, the number of area units in Hunan remains unchanged at 88. However, the most connected area unit has only 10 neighbours (area 85). The two area units with only one neighbour remain the same (area 30 and 65).
+
+### Visualizing Contiguity Weights
+
+A connectivity graph takes a point and displays a line to each neighboring point.
+
+We are working with polygons at the moment, so we will need to get points in order to make our connectivity graphs. The most typical method for this will be polygon centroids.
+
+We can use the sf package to get Latitude and Longitude of polygon centroids before moving onto the graphs.
+
+We will need points to associate with each polygon before we can make our connectivity graph. It will be a little more complicated than just running st_centroid on the sf object. We need the coordinates in a separate data frame. To do this we will use a mapping function.
+
+The mapping function applies a given function to each element of a vector and returns a vector of the same length. Our input vector will be the geometry column of hunan. Our function will be **st_centroid.** We will be using **map_dbl()** variation of map from thhe purrr package.
+
+To get our longitude values, we map the st_centroid function over the geometry column of hunan and access the longitude value through double bracket notation \[\[\]\] and 1 (\[\[1\]\]\]). This allows us to get **only the longitude,** which is the first value in each centroid.
+
+```{r}
+longitude <- map_dbl(hunan$geometry, ~st_centroid(.x)[[1]])
+```
+
+We can do the same for **latitude,** only with \[\[2\]\] instead.
+
+```{r}
+latitude <- map_dbl(hunan$geometry, ~st_centroid(.x)[[2]])
+```
+
+Now that we have longitude and latitude, we can use cbind to put them together into the same object (coords) as two separate columns
+
+```{r}
+coords_hunan <- cbind(longitude, latitude)
+```
+
+We can check the first few observation of this new object using head()
+
+```{r}
+head(coords_hunan)
+```
+
+#### Plotting Queen Contiguity Based Neighbours Map
+
+The contiguity map will draw a line between the centroid of each polygon and the centroids of its neighbors based on the Queen Contiguity.
+
+```{r}
+plot(hunan$geometry, border = 'lightgrey')
+plot(wm_q,coords_hunan, pch = 19, cex = 0.6, add = TRUE, col = 'red')
+```
+
+If we use plot(wm_q, coords_hunan) by itself, it will only provide a contiguity map with no border for each county.
+
+#### Plotting Rook Contiguity Based Neighbours Map
+
+We can easily make a Rook contiguity map instead of a Queen contiguity map by using wm_r instead of wm_q
+
+```{r}
+plot(hunan$geometry, border = 'lightgrey')
+plot(wm_r, coords_hunan, pch = 19, cex = 0.6, add = TRUE, col = 'red')
+```
+
+#### Plotting both Queen and Rook Contiguity Based Neighbours Maps
+
+```{r}
+par(mfrow = c(1,2))
+plot(hunan$geometry, border = 'lightgrey')
+plot(wm_q, coords_hunan, pch = 19, cex = 0.6, add = TRUE, col = 'red', main = 'Queen Contiguity')
+plot(hunan$geometry, border = 'lightgrey')
+plot(wm_r, coords_hunan, pch = 19, cex = 0.6, add = TRUE, col = 'red', main = 'Rook Contiguity')
+```
+
+## Computing Distance Based Neighbours
