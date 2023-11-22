@@ -133,6 +133,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <a class="dropdown-item" href="../../Hands-on_Ex/Hands-on_Ex2/Hands-on_Ex2_Spatial_Weights.html" rel="" target="">
  <span class="dropdown-text">Hands-on Exercise 2 - Spatial Weights and Applications</span></a>
   </li>  
+        <li>
+    <a class="dropdown-item" href="../../Hands-on_Ex/Hands-on_Ex2/Hands-on_Ex2_Global_Measures.html" rel="" target="">
+ <span class="dropdown-text">Hands-on Exercise 2 - Global Measures of Spatial Autocorrelation</span></a>
+  </li>  
     </ul>
   </li>
   <li class="nav-item dropdown ">
@@ -231,7 +235,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Modified</div>
     <div class="quarto-title-meta-contents">
-      <p class="date-modified">November 21, 2023</p>
+      <p class="date-modified">November 22, 2023</p>
     </div>
   </div>
     
@@ -1181,7 +1185,7 @@ W 88 7744 88 37.86334 365.9147</code></pre>
 [1] 0.125 0.125 0.125 0.125 0.125 0.125 0.125 0.125</code></pre>
 </div>
 </div>
-<p>Each neighbor is assigned a 0.125 of the total weight. This means that when R computes the average neighboring income values, each neighbor’s income will be multiplied by 0.125 before being tallied.</p>
+<p>Each neighbor is assigned a 0.125 of the total weight. This means that when R computes the average neighboring income values, each neighbor’s income will be multiplied by 0.2 before being tallied.</p>
 <p>We can use the same method to derive a row standardised distance weight matrix.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>rswm_ids <span class="ot">&lt;-</span> <span class="fu">nb2listw</span>(wm_q, <span class="at">glist =</span> ids, <span class="at">style =</span> <span class="st">'B'</span>, <span class="at">zero.policy =</span> <span class="cn">TRUE</span>)</span>
