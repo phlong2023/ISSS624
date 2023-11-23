@@ -15,6 +15,8 @@ website:
             href: Hands-on_Ex/Hands-on_Ex2/Hands-on_Ex2_Spatial_Weights.html
           - text: Hands-on Exercise 2 - Global Measures of Spatial Autocorrelation
             href: Hands-on_Ex/Hands-on_Ex2/Hands-on_Ex2_Global_Measures.html
+          - text: Hands-on Exercise 2 - Local Measures of Spatial Autocorrelation
+            href: Hands-on_Ex/Hands-on_Ex2/Hands-on_Ex2_Local_Measures.html
       - text: In-class Exercises
         menu: 
           - text: In-class Exercise 1
@@ -22,7 +24,7 @@ website:
     right:
       - href: index.html
         text: Home
-      - about.html
+      - href: about.html
 
 format:
   html:

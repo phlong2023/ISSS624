@@ -1,5 +1,12 @@
 ---
 title: "About"
+date-modified: 'last-modified'
+format: html
+execute: 
+  eval: true # run the code live
+  echo: true # all code will appear
+  warning: false # hide all warnings
+editor: visual
 ---
 
 About this site

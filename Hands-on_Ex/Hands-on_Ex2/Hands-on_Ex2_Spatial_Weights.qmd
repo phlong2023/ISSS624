@@ -185,10 +185,10 @@ plot(wm_r, coords_hunan, pch = 19, cex = 0.6, add = TRUE, col = 'red')
 
 ```{r}
 par(mfrow = c(1,2))
-plot(hunan$geometry, border = 'lightgrey')
-plot(wm_q, coords_hunan, pch = 19, cex = 0.6, add = TRUE, col = 'red', main = 'Queen Contiguity')
-plot(hunan$geometry, border = 'lightgrey')
-plot(wm_r, coords_hunan, pch = 19, cex = 0.6, add = TRUE, col = 'red', main = 'Rook Contiguity')
+plot(hunan$geometry, main = 'Queen Contiguity', border = 'lightgrey')
+plot(wm_q, coords_hunan, pch = 19, cex = 0.6, add = TRUE, col = 'red')
+plot(hunan$geometry, main = 'Rook Contiguity', border = 'lightgrey')
+plot(wm_r, coords_hunan, pch = 19, cex = 0.6, add = TRUE, col = 'red')
 ```
 
 ## Computing Distance Based Neighbours
@@ -265,10 +265,10 @@ Alternatively, we can plot two separate plots next to each other, one with centr
 
 ```{r}
 par(mfrow = c(1,2))
-plot(hunan$geometry, border = 'lightgrey')
-plot(k1, coords_hunan, add = TRUE, col = 'red', length = 0.08, main = '1st Nearest Neighbor')
-plot(hunan$geometry, border = 'lightgrey')
-plot(wm_d62, coords_hunan, add = TRUE, pch = 19, cex = 0.6, main = 'Distance Link')
+plot(hunan$geometry, border = 'lightgrey', main = '1st Nearest Neighbor')
+plot(k1, coords_hunan, add = TRUE, col = 'red', length = 0.08)
+plot(hunan$geometry, border = 'lightgrey', main = 'Distance Link')
+plot(wm_d62, coords_hunan, add = TRUE, pch = 19, cex = 0.6)
 ```
 
 ### Computing Adaptive Distance Weight Matrix
