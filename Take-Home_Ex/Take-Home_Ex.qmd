@@ -1,0 +1,28 @@
+---
+title: "Take-Home_Ex1"
+date: '24 November 2023'
+date-modified: 'last-modified'
+format: html
+execute: 
+  eval: true # run the code live
+  echo: true # all code will appear
+  warning: false # hide all warnings
+editor: visual
+---
+
+```{r}
+pacman::p_load(sf,spdep,tidyverse,tmap)
+```
+
+Loading hexagon
+
+```{r}
+hex <- st_read(dsn = 'data/geospatial',
+               layer = 'hexagon')
+```
+
+Mapping hexagon
+
+```{r}
+qtm(hex)
+```
