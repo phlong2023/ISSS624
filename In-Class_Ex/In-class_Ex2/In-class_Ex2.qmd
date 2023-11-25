@@ -1,0 +1,90 @@
+---
+title: "In-class Exercise 2"
+date: '25 November 2023'
+date-modified: 'last-modified'
+format: html
+execute: 
+  eval: true # run the code live
+  echo: true # all code will appear
+  warning: false # hide all warnings
+editor: visual
+---
+
+## Getting Started
+
+### Installing and Loading R Packages
+
+Loading R packages
+
+```{r}
+pacman::p_load(sf, sfdep, tmap, tidyverse, knitr)
+```
+
+### The Data
+
+For this In-class Exercise, the Hunan data sets will be used. They are:
+
+1.  hunan: a geographical data set in ESRI shapefile format
+2.  Hunan_2012: an attribute data set in csv format
+
+### Importing geospatial data
+
+*st_read()* can be used to read the shape file data set into an R sf dataframe
+
+```{r}
+hunan <- st_read(dsn = 'data/geospatial',
+                 layer = 'Hunan')
+```
+
+### Importing attribute table
+
+*read_csv()* can be used to read the attribute file into an R data frame
+
+```{r}
+hunan_2012 <- read_csv('data/aspatial/Hunan_2012.csv')
+```
+
+### Combining the two data sets
+
+*left_join()* can be used to combine the two data sets
+
+::: callout-note
+In order to retain the geospatial properties, the left data frame must be **sf data.frame**, in this case it is hunan
+:::
+
+```{r}
+hunan_GDPPC <- left_join(hunan, hunan_2012,
+                            by = 'County')%>%
+  select(1:4, 7, 15) #Retaining the city's name, ID, county name, county type, GDPPC, and geometry
+```
+
+## Deriving Contiguity Weights: Queen's Model
+
+The sfdep method entails the creation of a tibble data frame which contains the original data as well as the neighbors list and weights for each polygon , as opposed to creating the contiguity and weight separately in spdep.
+
+```{r}
+wm_q <- hunan_GDPPC %>%
+  mutate(nb = st_contiguity(geometry), # Default is Queen
+         wt = st_weights(nb,
+                         style='W'),
+         .before = 1)
+```
+
+## Computing Global Moran's I (old spdep method)
+
+```{r}
+moranI <- global_moran(wm_q$GDPPC,
+                       wm_q$nb,
+                       wm_q$wt)
+
+moranI
+```
+
+## Computing Local Moran's I (with sfdep method)
+
+```{r}
+lisa <- wm_q %>%
+  mutate(local_moran = local_moran(GDPPC, nb, wt, nsim = 99),
+         .before = 1) %>%
+  unnest(local_moran)
+```

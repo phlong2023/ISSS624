@@ -11,7 +11,7 @@ editor: visual
 ---
 
 ```{r}
-pacman::p_load(sf,spdep,tidyverse,tmap)
+pacman::p_load(sf,sfdep,tidyverse,tmap, jsonlite)
 ```
 
 Loading hexagon
@@ -25,4 +25,10 @@ Mapping hexagon
 
 ```{r}
 qtm(hex)
+```
+
+Passenger Volume
+
+```{r}
+passenger_df <- read_csv('data/aspatial/origin_destination_bus_202308.csv')
 ```

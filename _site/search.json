@@ -1,10 +1,52 @@
 [
   {
-    "objectID": "Take-Home_Ex/data/geospatial/hexagon.html",
-    "href": "Take-Home_Ex/data/geospatial/hexagon.html",
+    "objectID": "Take-Home_Ex/Take-Home_Ex.html",
+    "href": "Take-Home_Ex/Take-Home_Ex.html",
+    "title": "Take-Home_Ex1",
+    "section": "",
+    "text": "pacman::p_load(sf,sfdep,tidyverse,tmap, jsonlite)\n\nLoading hexagon\n\nhex &lt;- st_read(dsn = 'data/geospatial',\n               layer = 'hexagon')\n\nReading layer `hexagon' from data source \n  `D:\\phlong2023\\ISSS624\\Take-Home_Ex\\data\\geospatial' using driver `ESRI Shapefile'\nSimple feature collection with 3125 features and 6 fields\nGeometry type: POLYGON\nDimension:     XY\nBounding box:  xmin: 2667.538 ymin: 21506.33 xmax: 50010.26 ymax: 50256.33\nProjected CRS: SVY21 / Singapore TM\n\n\nMapping hexagon\n\nqtm(hex)\n\n\n\n\nPassenger Volume\n\npassenger_df &lt;- read_csv('data/aspatial/origin_destination_bus_202308.csv')"
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
     "title": "ISSS624",
     "section": "",
-    "text": "&lt;!DOCTYPE qgis PUBLIC ‘http://mrcc.com/qgis.dtd’ ‘SYSTEM’&gt;     dataset\n\n\n                 +proj=tmerc +lat_0=1.36666666666667 +lon_0=103.833333333333 +k=1 +x_0=28001.642 +y_0=38744.572 +ellps=WGS84 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs 0 0     false"
+    "text": "Welcome to ISSS624 Geospatial Analytics Applications!\nIn this webpage, I am going to share with you my learning journey of geospatial analytics."
+  },
+  {
+    "objectID": "In-Class_Ex/In-class_Ex2/In-class_Ex2_EHSA.html",
+    "href": "In-Class_Ex/In-class_Ex2/In-class_Ex2_EHSA.html",
+    "title": "In-Class_Ex2_EHSA",
+    "section": "",
+    "text": "Loading R packages. The plotly library is added to create interactive maps.\n\npacman::p_load(sf, sfdep, tmap, plotly, tidyverse, knitr)"
+  },
+  {
+    "objectID": "In-Class_Ex/In-class_Ex2/In-class_Ex2_EHSA.html#getting-started",
+    "href": "In-Class_Ex/In-class_Ex2/In-class_Ex2_EHSA.html#getting-started",
+    "title": "In-Class_Ex2_EHSA",
+    "section": "",
+    "text": "Loading R packages. The plotly library is added to create interactive maps.\n\npacman::p_load(sf, sfdep, tmap, plotly, tidyverse, knitr)"
+  },
+  {
+    "objectID": "In-Class_Ex/In-class_Ex2/In-class_Ex2_EHSA.html#the-data",
+    "href": "In-Class_Ex/In-class_Ex2/In-class_Ex2_EHSA.html#the-data",
+    "title": "In-Class_Ex2_EHSA",
+    "section": "The Data",
+    "text": "The Data\n\nImporting geospatial data\nst_read() can be used to read the shape file data set into an R sf data frame\n\nhunan &lt;- st_read(dsn = 'data/geospatial',\n                 layer = 'Hunan')\n\nReading layer `Hunan' from data source \n  `D:\\phlong2023\\ISSS624\\In-Class_Ex\\In-class_Ex2\\data\\geospatial' \n  using driver `ESRI Shapefile'\nSimple feature collection with 88 features and 7 fields\nGeometry type: POLYGON\nDimension:     XY\nBounding box:  xmin: 108.7831 ymin: 24.6342 xmax: 114.2544 ymax: 30.12812\nGeodetic CRS:  WGS 84\n\n\n\n\nImporting time series file\nread_csv() can be used to read the time series file into an R data frame\n\nGDPPC &lt;- read_csv('data/aspatial/Hunan_GDPPC.csv')"
+  },
+  {
+    "objectID": "In-Class_Ex/In-class_Ex2/In-class_Ex2_EHSA.html#creating-a-time-series",
+    "href": "In-Class_Ex/In-class_Ex2/In-class_Ex2_EHSA.html#creating-a-time-series",
+    "title": "In-Class_Ex2_EHSA",
+    "section": "Creating a Time Series",
+    "text": "Creating a Time Series\nspacetime() can be used to create a Space Time Cube\n\nGDPPC_st &lt;- spacetime(GDPPC, hunan,\n                      .loc_col = 'County',\n                      .time_col = 'Year')\n\nis_spacetime_cube() can be used to check whether the created object is actually a spacetime cube\n\nis_spacetime_cube(GDPPC_st)\n\n[1] TRUE\n\n\n\nCreating Inverse Distance Weight Matrix Columns for GI*\n\nGDPPC_nb &lt;- GDPPC_st %&gt;%\n  activate('geometry') %&gt;%\n  mutate(nb = include_self(st_contiguity(geometry)),\n         wt = st_inverse_distance(nb, geometry,\n                                  scale = 1,\n                                  alpha = 1),\n         .before = 1)%&gt;%\n  set_nbs('nb') %&gt;%\n  set_wts('wt')\n\n\n\nComputing GI*\nComputing GI* using the newly created data frame with the neighbor list and weight matrix for each county for each year\n\ngi_stars &lt;- GDPPC_nb %&gt;%\n  group_by(Year) %&gt;%\n  mutate(gi_star = local_gstar_perm(GDPPC, nb, wt)) %&gt;%\n  unnest(gi_star)"
+  },
+  {
+    "objectID": "In-Class_Ex/In-class_Ex2/In-class_Ex2_EHSA.html#man-kendall-test",
+    "href": "In-Class_Ex/In-class_Ex2/In-class_Ex2_EHSA.html#man-kendall-test",
+    "title": "In-Class_Ex2_EHSA",
+    "section": "Man-Kendall Test",
+    "text": "Man-Kendall Test\n\nPerforming Emerging Hotspot Analysis\nemerging_hotspot_analysis() can be used to perform the Emerging Hotspot Analysis using the space time cube object\n\nehsa &lt;- emerging_hotspot_analysis(\n  x = GDPPC_st,\n  .var = 'GDPPC',\n  k = 1, #Comparing the Time Series sequentially (e.g. 2012 vs 2013)\n  nsim = 99\n)\n\nPlotting the distribution of hotspot type\n\nggplot(ehsa, aes(x=classification))+\n  geom_bar()+\n  theme_classic()\n\n\n\n\n\n\nVisualizing EHSA\n\nehsa_rename &lt;- ehsa %&gt;%\n  rename(County = location)\n\nhunan_ehsa &lt;- left_join(hunan, ehsa_rename,\n                        by = 'County')\n\nehsa_sig &lt;- hunan_ehsa %&gt;%\n  filter(p_value &lt; 0.05)\ntmap_mode('plot')\ntm_shape(hunan_ehsa) +\n  tm_polygons()+\n  tm_borders(alpha = 0.5)+\n  tm_shape(ehsa_sig)+\n  tm_fill('classification')+\n  tm_borders(alpha = 0.4)"
   },
   {
     "objectID": "In-Class_Ex/In-Class_Ex1/In-Class_Ex1.html",
@@ -403,7 +445,7 @@
     "href": "Hands-on_Ex/Hands-on_Ex2/Hands-on_Ex2_Local_Measures.html#creating-a-lisa-cluster-map",
     "title": "Hands-on_Ex2_Local_Measures",
     "section": "Creating a LISA Cluster Map",
-    "text": "Creating a LISA Cluster Map\nThe LISA Cluster Map shows the significant locations color coded by type of spatial autocorrelation.\nThe first step before we can generate the LISA cluster map is to plot the Moran scatterplot.\n\nPlotting Moran Scatterplot\nThe Moran scatterplot is an illustration of the relationship between the values of the chosen attribute at each location and the average value of the same attribute at neighboring locations.\nmoran.plot() can be used to draw the Moran scatterplot.\n\nnci &lt;- moran.plot(hunan$GDPPC, rswm_q,\n                  labels = as.character(hunan$County),\n                  xlab = 'GDPPC 2012',\n                  ylab = 'Spatially Lag GDPPC 2012')\n\n\n\n\nThe plot is split in 4 quadrants: The top right corner belongs to area that have high GDPPC and are surrounded by other areas that have the average level GDPPC. This is the high-high locations in the lesson slide.\n\n\nPlotting Moran Scatterplot with Standardised Variable\nFirst, scale() can be used to center and scale the variable. Here, centering is done by subtracting the mean (omitting NAs) of the corresponding columns, and scaling is done by dividing the centered variable by their standard deviations.\n\n\n\n\n\n\nNote\n\n\n\nThe as.vector() added is to make sure that the data type we get out of the process is a vector which map neatly into the data frame.\n\n\n\nhunan$Z.GDPPC &lt;- scale(hunan$GDPPC)%&gt;%\n  as.vector()\n\nWe can then plot our new standardised variable onto a Moran scatterplot.\n\nnci2 &lt;- moran.plot(hunan$Z.GDPPC, rswm_q,\n                   labels = as.character(hunan$County),\n                   xlab = 'z-GDPPC 2012',\n                   ylab = 'Spatially Lag z-GDPPC 2012')\n\n\n\n\n\n\nPreparing LISA Map Classes\nThe code chunk below shows the steps to prepare a LISA cluster map. This code create a vector of ‘0’ with length being equal to the number of rows of localMI.\n\nquadrant &lt;- vector(mode='numeric',length = nrow(localMI))\n\nNext, we can derive the spatially lagged variable of interest and center it around its mean\n\nhunan$lag_GDPPC &lt;- lag.listw(rswm_q, hunan$GDPPC)\n\nDV &lt;- hunan$lag_GDPPC - mean(hunan$lag_GDPPC)\n\nNext, we center the local Moran’s around the mean\n\nLM_I &lt;- localMI[,1]-mean(localMI[,1])\n\nNext, we will set a statistical significance level for the local Moran.\n\nsignif &lt;- 0.05\n\nNow, we need to define the four different quadrants and one special quadrant for non-significant Moran:\n\n# Low - Low \nquadrant[DV &lt; 0 & LM_I &gt; 0] &lt;- 1\n# Low - High\nquadrant[DV &lt; 0 & LM_I &lt; 0] &lt;- 2\n# High - Low\nquadrant[DV &gt; 0 & LM_I &lt; 0] &lt;- 3\n# High- High\nquadrant[DV &gt; 0 & LM_I &gt; 0] &lt;- 4\n\n# Non-Significant Moran\nquadrant[localMI[,5]&gt;signif] &lt;- 0\n\n\n\nPlotting LISA map\nWe can build the LISA map using the code below\n\nhunan.localMI$quadrant &lt;- quadrant\ncolors &lt;- c(\"#ffffff\", \"#2c7bb6\", \"#abd9e9\", \"#fdae61\", \"#d7191c\")\nclusters &lt;- c('Insignificant','Low-Low','Low-High','High-Low','High-High')\n\ntm_shape(hunan.localMI) +\n  tm_fill(col = 'quadrant',\n          style='cat',\n          palette = colors[c(sort(unique(quadrant)))+1],\n          labels = clusters[c(sort(unique(quadrant)))+1],\n          popup.vars = c(''))+\n  tm_view(set.zoom.limits = c(11,17)) +\n  tm_borders(alpha = 0.5)\n\n\n\n\nFor effective interpretation, it is better to plot both the local Moran’s I values map and its corresponding p-values map next to each other\n\ngdppc &lt;- qtm(hunan, 'GDPPC')\n\nhunan.localMI$quadrant &lt;- quadrant\ncolors &lt;- c(\"#ffffff\", \"#2c7bb6\", \"#abd9e9\", \"#fdae61\", \"#d7191c\")\nclusters &lt;- c('Insignificant','Low-Low','Low-High','High-Low','High-High')\n\nLISAmap &lt;- tm_shape(hunan.localMI)+\n  tm_fill(col = 'quadrant',\n          style = 'cat',\n          palette = colors[sort(unique(quadrant))+1],\n          labels = clusters[sort(unique(quadrant))+1],\n          popup.vars = c(''))+\n  tm_view(set.zoom.limits = c(11,17))+\n  tm_borders(alpha = 0.5)\n\ntmap_arrange(gdppc, LISAmap, asp = 1, ncol = 2)\n\n\n\n\nWe can also bring up the local Moran’s I values and p-values map before for comparison\n\ntmap_arrange(localMI.map, pvalues.map, asp = 1, ncol = 2)"
+    "text": "Creating a LISA Cluster Map\nThe LISA Cluster Map shows the significant locations color coded by type of spatial autocorrelation.\nThe first step before we can generate the LISA cluster map is to plot the Moran scatterplot.\n\nPlotting Moran Scatterplot\nThe Moran scatterplot is an illustration of the relationship between the values of the chosen attribute at each location and the average value of the same attribute at neighboring locations.\nmoran.plot() can be used to draw the Moran scatterplot.\n\nnci &lt;- moran.plot(hunan$GDPPC, rswm_q,\n                  labels = as.character(hunan$County),\n                  xlab = 'GDPPC 2012',\n                  ylab = 'Spatially Lag GDPPC 2012')\n\n\n\n\nThe plot is split in 4 quadrants: The top right corner belongs to area that have high GDPPC and are surrounded by other areas that have the average level GDPPC. This is the high-high locations in the lesson slide.\n\n\nPlotting Moran Scatterplot with Standardised Variable\nFirst, scale() can be used to center and scale the variable. Here, centering is done by subtracting the mean (omitting NAs) of the corresponding columns, and scaling is done by dividing the centered variable by their standard deviations.\n\n\n\n\n\n\nNote\n\n\n\nThe as.vector() added is to make sure that the data type we get out of the process is a vector which map neatly into the data frame.\n\n\n\nhunan$Z.GDPPC &lt;- scale(hunan$GDPPC)%&gt;%\n  as.vector()\n\nWe can then plot our new standardised variable onto a Moran scatterplot.\n\nnci2 &lt;- moran.plot(hunan$Z.GDPPC, rswm_q,\n                   labels = as.character(hunan$County),\n                   xlab = 'z-GDPPC 2012',\n                   ylab = 'Spatially Lag z-GDPPC 2012')\n\n\n\n\n\n\nPreparing LISA Map Classes\nThe code chunk below shows the steps to prepare a LISA cluster map. This code create a vector of ‘0’ with length being equal to the number of rows of localMI.\n\nquadrant &lt;- vector(mode='numeric',length = nrow(localMI))\n\nNext, we can derive the spatially lagged variable of interest and center it around its mean\n\nhunan$lag_GDPPC &lt;- lag.listw(rswm_q, hunan$GDPPC)\n\nDV &lt;- hunan$lag_GDPPC - mean(hunan$lag_GDPPC)\n\nNext, we center the local Moran’s around the mean\n\nLM_I &lt;- localMI[,1]-mean(localMI[,1])\n\nNext, we will set a statistical significance level for the local Moran.\n\nsignif &lt;- 0.05\n\nNow, we need to define the four different quadrants and one special quadrant for non-significant Moran:\n\n# Low - Low \nquadrant[DV &lt; 0 & LM_I &gt; 0] &lt;- 1\n# Low - High\nquadrant[DV &lt; 0 & LM_I &lt; 0] &lt;- 3\n# High - Low\nquadrant[DV &gt; 0 & LM_I &lt; 0] &lt;- 2\n# High- High\nquadrant[DV &gt; 0 & LM_I &gt; 0] &lt;- 4\n\n# Non-Significant Moran\nquadrant[localMI[,5]&gt;signif] &lt;- 0\n\n\n\nPlotting LISA map\nWe can build the LISA map using the code below\n\nhunan.localMI$quadrant &lt;- quadrant\ncolors &lt;- c(\"#ffffff\", \"#2c7bb6\", \"#abd9e9\", \"#fdae61\", \"#d7191c\")\nclusters &lt;- c('Insignificant','Low-Low','Low-High','High-Low','High-High')\n\ntm_shape(hunan.localMI) +\n  tm_fill(col = 'quadrant',\n          style='cat',\n          palette = colors[c(sort(unique(quadrant)))+1],\n          labels = clusters[c(sort(unique(quadrant)))+1],\n          popup.vars = c(''))+\n  tm_view(set.zoom.limits = c(11,17)) +\n  tm_borders(alpha = 0.5)\n\n\n\n\nFor effective interpretation, it is better to plot both the local Moran’s I values map and its corresponding p-values map next to each other\n\ngdppc &lt;- qtm(hunan, 'GDPPC')\n\nhunan.localMI$quadrant &lt;- quadrant\ncolors &lt;- c(\"#ffffff\", \"#2c7bb6\", \"#abd9e9\", \"#fdae61\", \"#d7191c\")\nclusters &lt;- c('Insignificant','Low-Low','Low-High','High-Low','High-High')\n\nLISAmap &lt;- tm_shape(hunan.localMI)+\n  tm_fill(col = 'quadrant',\n          style = 'cat',\n          palette = colors[sort(unique(quadrant))+1],\n          labels = clusters[sort(unique(quadrant))+1],\n          popup.vars = c(''))+\n  tm_view(set.zoom.limits = c(11,17))+\n  tm_borders(alpha = 0.5)\n\ntmap_arrange(gdppc, LISAmap, asp = 1, ncol = 2)\n\n\n\n\nWe can also bring up the local Moran’s I values and p-values map before for comparison\n\ntmap_arrange(localMI.map, pvalues.map, asp = 1, ncol = 2)"
   },
   {
     "objectID": "Hands-on_Ex/Hands-on_Ex2/Hands-on_Ex2_Local_Measures.html#hot-spot-and-cold-spot-area-analysis",
@@ -427,10 +469,80 @@
     "text": "&lt;!DOCTYPE qgis PUBLIC ‘http://mrcc.com/qgis.dtd’ ‘SYSTEM’&gt;     dataset\n\n\n        0 0     false"
   },
   {
-    "objectID": "index.html",
-    "href": "index.html",
+    "objectID": "In-Class_Ex/In-class_Ex2/In-class_Ex2.html",
+    "href": "In-Class_Ex/In-class_Ex2/In-class_Ex2.html",
+    "title": "In-class Exercise 2",
+    "section": "",
+    "text": "Loading R packages\n\npacman::p_load(sf, sfdep, tmap, tidyverse, knitr)\n\n\n\n\nFor this In-class Exercise, the Hunan data sets will be used. They are:\n\nhunan: a geographical data set in ESRI shapefile format\nHunan_2012: an attribute data set in csv format\n\n\n\n\nst_read() can be used to read the shape file data set into an R sf dataframe\n\nhunan &lt;- st_read(dsn = 'data/geospatial',\n                 layer = 'Hunan')\n\nReading layer `Hunan' from data source \n  `D:\\phlong2023\\ISSS624\\In-Class_Ex\\In-class_Ex2\\data\\geospatial' \n  using driver `ESRI Shapefile'\nSimple feature collection with 88 features and 7 fields\nGeometry type: POLYGON\nDimension:     XY\nBounding box:  xmin: 108.7831 ymin: 24.6342 xmax: 114.2544 ymax: 30.12812\nGeodetic CRS:  WGS 84\n\n\n\n\n\nread_csv() can be used to read the attribute file into an R data frame\n\nhunan_2012 &lt;- read_csv('data/aspatial/Hunan_2012.csv')\n\n\n\n\nleft_join() can be used to combine the two data sets\n\n\n\n\n\n\nNote\n\n\n\nIn order to retain the geospatial properties, the left data frame must be sf data.frame, in this case it is hunan\n\n\n\nhunan_GDPPC &lt;- left_join(hunan, hunan_2012,\n                            by = 'County')%&gt;%\n  select(1:4, 7, 15) #Retaining the city's name, ID, county name, county type, GDPPC, and geometry"
+  },
+  {
+    "objectID": "In-Class_Ex/In-class_Ex2/In-class_Ex2.html#getting-started",
+    "href": "In-Class_Ex/In-class_Ex2/In-class_Ex2.html#getting-started",
+    "title": "In-class Exercise 2",
+    "section": "",
+    "text": "Loading R packages\n\npacman::p_load(sf, sfdep, tmap, tidyverse, knitr)\n\n\n\n\nFor this In-class Exercise, the Hunan data sets will be used. They are:\n\nhunan: a geographical data set in ESRI shapefile format\nHunan_2012: an attribute data set in csv format\n\n\n\n\nst_read() can be used to read the shape file data set into an R sf dataframe\n\nhunan &lt;- st_read(dsn = 'data/geospatial',\n                 layer = 'Hunan')\n\nReading layer `Hunan' from data source \n  `D:\\phlong2023\\ISSS624\\In-Class_Ex\\In-class_Ex2\\data\\geospatial' \n  using driver `ESRI Shapefile'\nSimple feature collection with 88 features and 7 fields\nGeometry type: POLYGON\nDimension:     XY\nBounding box:  xmin: 108.7831 ymin: 24.6342 xmax: 114.2544 ymax: 30.12812\nGeodetic CRS:  WGS 84\n\n\n\n\n\nread_csv() can be used to read the attribute file into an R data frame\n\nhunan_2012 &lt;- read_csv('data/aspatial/Hunan_2012.csv')\n\n\n\n\nleft_join() can be used to combine the two data sets\n\n\n\n\n\n\nNote\n\n\n\nIn order to retain the geospatial properties, the left data frame must be sf data.frame, in this case it is hunan\n\n\n\nhunan_GDPPC &lt;- left_join(hunan, hunan_2012,\n                            by = 'County')%&gt;%\n  select(1:4, 7, 15) #Retaining the city's name, ID, county name, county type, GDPPC, and geometry"
+  },
+  {
+    "objectID": "In-Class_Ex/In-class_Ex2/In-class_Ex2.html#deriving-contiguity-weights-queens-model",
+    "href": "In-Class_Ex/In-class_Ex2/In-class_Ex2.html#deriving-contiguity-weights-queens-model",
+    "title": "In-class Exercise 2",
+    "section": "Deriving Contiguity Weights: Queen’s Model",
+    "text": "Deriving Contiguity Weights: Queen’s Model\nThe sfdep method entails the creation of a tibble data frame which contains the original data as well as the neighbors list and weights for each polygon , as opposed to creating the contiguity and weight separately in spdep.\n\nwm_q &lt;- hunan_GDPPC %&gt;%\n  mutate(nb = st_contiguity(geometry), # Default is Queen\n         wt = st_weights(nb,\n                         style='W'),\n         .before = 1)"
+  },
+  {
+    "objectID": "In-Class_Ex/In-class_Ex2/In-class_Ex2.html#computing-global-morans-i-old-spdep-method",
+    "href": "In-Class_Ex/In-class_Ex2/In-class_Ex2.html#computing-global-morans-i-old-spdep-method",
+    "title": "In-class Exercise 2",
+    "section": "Computing Global Moran’s I (old spdep method)",
+    "text": "Computing Global Moran’s I (old spdep method)\n\nmoranI &lt;- global_moran(wm_q$GDPPC,\n                       wm_q$nb,\n                       wm_q$wt)\n\nmoranI\n\n$I\n[1] 0.30075\n\n$K\n[1] 7.640659"
+  },
+  {
+    "objectID": "In-Class_Ex/In-class_Ex2/In-class_Ex2.html#computing-local-morans-i-with-sfdep-method",
+    "href": "In-Class_Ex/In-class_Ex2/In-class_Ex2.html#computing-local-morans-i-with-sfdep-method",
+    "title": "In-class Exercise 2",
+    "section": "Computing Local Moran’s I (with sfdep method)",
+    "text": "Computing Local Moran’s I (with sfdep method)\n\nlisa &lt;- wm_q %&gt;%\n  mutate(local_moran = local_moran(GDPPC, nb, wt, nsim = 99),\n         .before = 1) %&gt;%\n  unnest(local_moran)"
+  },
+  {
+    "objectID": "In-Class_Ex/In-class_Ex2/In-class_Ex2_GLSA.html",
+    "href": "In-Class_Ex/In-class_Ex2/In-class_Ex2_GLSA.html",
+    "title": "In-class Exercise 2",
+    "section": "",
+    "text": "Loading R packages\n\npacman::p_load(sf, sfdep, tmap, tidyverse, knitr)\n\n\n\n\nFor this In-class Exercise, the Hunan data sets will be used. They are:\n\nhunan: a geographical data set in ESRI shapefile format\nHunan_2012: an attribute data set in csv format\n\n\n\n\nst_read() can be used to read the shape file data set into an R sf dataframe\n\nhunan &lt;- st_read(dsn = 'data/geospatial',\n                 layer = 'Hunan')\n\nReading layer `Hunan' from data source \n  `D:\\phlong2023\\ISSS624\\In-Class_Ex\\In-class_Ex2\\data\\geospatial' \n  using driver `ESRI Shapefile'\nSimple feature collection with 88 features and 7 fields\nGeometry type: POLYGON\nDimension:     XY\nBounding box:  xmin: 108.7831 ymin: 24.6342 xmax: 114.2544 ymax: 30.12812\nGeodetic CRS:  WGS 84\n\n\n\n\n\nread_csv() can be used to read the attribute file into an R data frame\n\nhunan_2012 &lt;- read_csv('data/aspatial/Hunan_2012.csv')\n\n\n\n\nleft_join() can be used to combine the two data sets\n\n\n\n\n\n\nNote\n\n\n\nIn order to retain the geospatial properties, the left data frame must be sf data.frame, in this case it is hunan\n\n\n\nhunan_GDPPC &lt;- left_join(hunan, hunan_2012,\n                            by = 'County')%&gt;%\n  select(1:4, 7, 15) #Retaining the city's name, ID, county name, county type, GDPPC, and geometry"
+  },
+  {
+    "objectID": "In-Class_Ex/In-class_Ex2/In-class_Ex2_GLSA.html#getting-started",
+    "href": "In-Class_Ex/In-class_Ex2/In-class_Ex2_GLSA.html#getting-started",
+    "title": "In-class Exercise 2",
+    "section": "",
+    "text": "Loading R packages\n\npacman::p_load(sf, sfdep, tmap, tidyverse, knitr)\n\n\n\n\nFor this In-class Exercise, the Hunan data sets will be used. They are:\n\nhunan: a geographical data set in ESRI shapefile format\nHunan_2012: an attribute data set in csv format\n\n\n\n\nst_read() can be used to read the shape file data set into an R sf dataframe\n\nhunan &lt;- st_read(dsn = 'data/geospatial',\n                 layer = 'Hunan')\n\nReading layer `Hunan' from data source \n  `D:\\phlong2023\\ISSS624\\In-Class_Ex\\In-class_Ex2\\data\\geospatial' \n  using driver `ESRI Shapefile'\nSimple feature collection with 88 features and 7 fields\nGeometry type: POLYGON\nDimension:     XY\nBounding box:  xmin: 108.7831 ymin: 24.6342 xmax: 114.2544 ymax: 30.12812\nGeodetic CRS:  WGS 84\n\n\n\n\n\nread_csv() can be used to read the attribute file into an R data frame\n\nhunan_2012 &lt;- read_csv('data/aspatial/Hunan_2012.csv')\n\n\n\n\nleft_join() can be used to combine the two data sets\n\n\n\n\n\n\nNote\n\n\n\nIn order to retain the geospatial properties, the left data frame must be sf data.frame, in this case it is hunan\n\n\n\nhunan_GDPPC &lt;- left_join(hunan, hunan_2012,\n                            by = 'County')%&gt;%\n  select(1:4, 7, 15) #Retaining the city's name, ID, county name, county type, GDPPC, and geometry"
+  },
+  {
+    "objectID": "In-Class_Ex/In-class_Ex2/In-class_Ex2_GLSA.html#deriving-contiguity-weights-queens-model",
+    "href": "In-Class_Ex/In-class_Ex2/In-class_Ex2_GLSA.html#deriving-contiguity-weights-queens-model",
+    "title": "In-class Exercise 2",
+    "section": "Deriving Contiguity Weights: Queen’s Model",
+    "text": "Deriving Contiguity Weights: Queen’s Model\nThe sfdep method entails the creation of a tibble data frame which contains the original data as well as the neighbors list and weights for each polygon , as opposed to creating the contiguity and weight separately in spdep.\n\nwm_q &lt;- hunan_GDPPC %&gt;%\n  mutate(nb = st_contiguity(geometry), # Default is Queen\n         wt = st_weights(nb,\n                         style='W'),\n         .before = 1)"
+  },
+  {
+    "objectID": "In-Class_Ex/In-class_Ex2/In-class_Ex2_GLSA.html#computing-global-morans-i-old-spdep-method",
+    "href": "In-Class_Ex/In-class_Ex2/In-class_Ex2_GLSA.html#computing-global-morans-i-old-spdep-method",
+    "title": "In-class Exercise 2",
+    "section": "Computing Global Moran’s I (old spdep method)",
+    "text": "Computing Global Moran’s I (old spdep method)\n\nmoranI &lt;- global_moran(wm_q$GDPPC,\n                       wm_q$nb,\n                       wm_q$wt)\n\nmoranI\n\n$I\n[1] 0.30075\n\n$K\n[1] 7.640659"
+  },
+  {
+    "objectID": "In-Class_Ex/In-class_Ex2/In-class_Ex2_GLSA.html#computing-local-morans-i-with-sfdep-method",
+    "href": "In-Class_Ex/In-class_Ex2/In-class_Ex2_GLSA.html#computing-local-morans-i-with-sfdep-method",
+    "title": "In-class Exercise 2",
+    "section": "Computing Local Moran’s I (with sfdep method)",
+    "text": "Computing Local Moran’s I (with sfdep method)\n\nlisa &lt;- wm_q %&gt;%\n  mutate(local_moran = local_moran(GDPPC, nb, wt, nsim = 99),\n         .before = 1) %&gt;%\n  unnest(local_moran)"
+  },
+  {
+    "objectID": "Take-Home_Ex/data/geospatial/hexagon.html",
+    "href": "Take-Home_Ex/data/geospatial/hexagon.html",
     "title": "ISSS624",
     "section": "",
-    "text": "Welcome to ISSS624 Geospatial Analytics Applications!\nIn this webpage, I am going to share with you my learning journey of geospatial analytics."
+    "text": "&lt;!DOCTYPE qgis PUBLIC ‘http://mrcc.com/qgis.dtd’ ‘SYSTEM’&gt;     dataset\n\n\n                 +proj=tmerc +lat_0=1.36666666666667 +lon_0=103.833333333333 +k=1 +x_0=28001.642 +y_0=38744.572 +ellps=WGS84 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs 0 0     false"
   }
 ]

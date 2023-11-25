@@ -152,6 +152,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <a class="dropdown-item" href="../../In-Class_ex/In-Class_Ex1/In-class_Ex1.html" rel="" target="">
  <span class="dropdown-text">In-class Exercise 1</span></a>
   </li>  
+        <li>
+    <a class="dropdown-item" href="../../In-Class_ex/In-Class_Ex2/In-class_Ex2_GLSA.html" rel="" target="">
+ <span class="dropdown-text">In-class Exercise 2 - GLSA</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="../../In-Class_ex/In-Class_Ex2/In-class_Ex2_EHSA.html" rel="" target="">
+ <span class="dropdown-text">In-class Exercise 2 - EHSA</span></a>
+  </li>  
     </ul>
   </li>
 </ul>
@@ -160,9 +168,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <a class="nav-link" href="../../index.html" rel="" target="">
  <span class="menu-text">Home</span></a>
   </li>  
-  <li class="nav-item compact">
+  <li class="nav-item">
     <a class="nav-link" href="../../about.html" rel="" target="">
- <span class="menu-text"></span></a>
+ <span class="menu-text">About</span></a>
   </li>  
 </ul>
             <div class="quarto-navbar-tools">
@@ -258,7 +266,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Modified</div>
     <div class="quarto-title-meta-contents">
-      <p class="date-modified">November 23, 2023</p>
+      <p class="date-modified">November 25, 2023</p>
     </div>
   </div>
     
@@ -976,9 +984,9 @@ Note
 <div class="sourceCode cell-code" id="cb55"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Low - Low </span></span>
 <span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a>quadrant[DV <span class="sc">&lt;</span> <span class="dv">0</span> <span class="sc">&amp;</span> LM_I <span class="sc">&gt;</span> <span class="dv">0</span>] <span class="ot">&lt;-</span> <span class="dv">1</span></span>
 <span id="cb55-3"><a href="#cb55-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Low - High</span></span>
-<span id="cb55-4"><a href="#cb55-4" aria-hidden="true" tabindex="-1"></a>quadrant[DV <span class="sc">&lt;</span> <span class="dv">0</span> <span class="sc">&amp;</span> LM_I <span class="sc">&lt;</span> <span class="dv">0</span>] <span class="ot">&lt;-</span> <span class="dv">2</span></span>
+<span id="cb55-4"><a href="#cb55-4" aria-hidden="true" tabindex="-1"></a>quadrant[DV <span class="sc">&lt;</span> <span class="dv">0</span> <span class="sc">&amp;</span> LM_I <span class="sc">&lt;</span> <span class="dv">0</span>] <span class="ot">&lt;-</span> <span class="dv">3</span></span>
 <span id="cb55-5"><a href="#cb55-5" aria-hidden="true" tabindex="-1"></a><span class="co"># High - Low</span></span>
-<span id="cb55-6"><a href="#cb55-6" aria-hidden="true" tabindex="-1"></a>quadrant[DV <span class="sc">&gt;</span> <span class="dv">0</span> <span class="sc">&amp;</span> LM_I <span class="sc">&lt;</span> <span class="dv">0</span>] <span class="ot">&lt;-</span> <span class="dv">3</span></span>
+<span id="cb55-6"><a href="#cb55-6" aria-hidden="true" tabindex="-1"></a>quadrant[DV <span class="sc">&gt;</span> <span class="dv">0</span> <span class="sc">&amp;</span> LM_I <span class="sc">&lt;</span> <span class="dv">0</span>] <span class="ot">&lt;-</span> <span class="dv">2</span></span>
 <span id="cb55-7"><a href="#cb55-7" aria-hidden="true" tabindex="-1"></a><span class="co"># High- High</span></span>
 <span id="cb55-8"><a href="#cb55-8" aria-hidden="true" tabindex="-1"></a>quadrant[DV <span class="sc">&gt;</span> <span class="dv">0</span> <span class="sc">&amp;</span> LM_I <span class="sc">&gt;</span> <span class="dv">0</span>] <span class="ot">&lt;-</span> <span class="dv">4</span></span>
 <span id="cb55-9"><a href="#cb55-9" aria-hidden="true" tabindex="-1"></a></span>

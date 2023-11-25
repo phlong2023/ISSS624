@@ -505,9 +505,9 @@ Now, we need to define the four different quadrants and one special quadrant for
 # Low - Low 
 quadrant[DV < 0 & LM_I > 0] <- 1
 # Low - High
-quadrant[DV < 0 & LM_I < 0] <- 2
+quadrant[DV < 0 & LM_I < 0] <- 3
 # High - Low
-quadrant[DV > 0 & LM_I < 0] <- 3
+quadrant[DV > 0 & LM_I < 0] <- 2
 # High- High
 quadrant[DV > 0 & LM_I > 0] <- 4
 
