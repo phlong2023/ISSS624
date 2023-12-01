@@ -276,6 +276,10 @@ bushexmap <- tm_shape(honeycomb_count)+
 bushexmap
 ```
 
+::: callout-note
+Search for the bus stop near your place and compare the numbers between the four maps by zooming in! Do you think it's accurate?
+:::
+
 By looking at the illustration, we can see that each cell might contain up to four bus stops. A bar chat can be drawn with the **ggplot2** package to visualize the distribution of number of bus stop in each cell.
 
 ```{r}
@@ -465,3 +469,83 @@ rm(list = c('area_honeycomb_grid', 'bushexmap', 'honeycomb_count', 'honeycomb_gr
 ```
 
 ## Local Indicators of Spatial Autocorrelation (LISA)
+
+### Defining the Neighborhood
+
+Before the LISA analysis can be conducted, it is important to define our neighborhood, or the neighbors of each polygon. This is based on the ideas that neighbors, or spatial objects which are related to other spatial objects based on sharing a common boundary or lying with a certain distance of one another, might affect each other.
+
+In this case, we would like to identify the neighbors of each hexagon so that LISA analysis can determine if the number of trips in a hexagon in a time frame is correlated to the number of trips of the hexagons around it, either in the same direction or opposite direction.
+
+The first step to determining the neighborhood is to choose a method by which neighbors are classified:
+
+1.  Contiguity-based Method: Based on the sharing of boundaries, either edges and/or points (Queen and Rook method).
+2.  Distance-based Method: Based on the distances between the centroid (central point of each hexagon) of each polygon. This can either be set to a distance where each hexagon has at least one neighbor (Fixed Distance) or where each polygon has a certain number of neighbors (Adaptive Distance).
+
+It is important to choose the appropriate method according to each situation. However, in this study, Contiguity-based methods can be preemptively ruled out due to the fact that some cells have no co contiguous neighbors, as can be seen below.
+
+![**Isolated Cells**](Isolated_Cells.png)
+
+If the contiguity method is used, the LISA calculation for these cells would not be effective as they technically have no neighbors. This can be confirmed by using the *poly2nb()* function to create a Queen contiguity matrix for one time frame
+
+```{r}
+wm_q <- st_contiguity(st_geometry(hex_passenger_wd_1720))
+
+summary(wm_q)
+```
+
+As can be seen from the weight matrix, 112 hexagon cells have 0 neighbor. **Therefore, a Distance-based Method would be suitable for analysis. Both Fixed Distance and Adaptive Distance methods will be utilized for more comprehensive comparison.**
+
+### Creating a Distance-based Neighborhood Matrix
+
+#### Creating a Fixed Distance Weight Matrix
+
+*st_dist_band()* of **sfdep** is incredibly powerful in that it can create a neighbor list based on distance between the centroid of polygons and a lower and upper bound distance to other centroid. The default arguments for *st_dist_band()* will find neighbors with a lower and upper bound so that each hexagon will have at least one neighbor. This is the equivalent of the steps in **spdep** of the function *knearneigh()* of k=1.
+
+*st_inverse_distance()* of a **sfdep** can be combined with *st_dist_band()* in a **dplyr** step to create a new column in each data frame of the different time frames to create a neighbor list and a inverse distance weight list.
+
+```{r}
+# Weekday morning peak 6am - 9am
+wd69_nb <- hex_passenger_wd_69 %>%
+  mutate(nb = st_dist_band(area_honeycomb_grid),
+         wt = st_inverse_distance(nb, area_honeycomb_grid),
+         .before = 1) # to put them in the front
+
+# Weekday afternoon peak 5pm - 8pm (17:00 - 20:00)
+wd1720_nb <- hex_passenger_wd_1720 %>%
+  mutate(nb = st_dist_band(area_honeycomb_grid),
+         wt = st_inverse_distance(nb, area_honeycomb_grid),
+         .before = 1) # to put them in the front
+
+# Weekend/holiday morning peak 11am - 2pm (11:00 - 14:00)
+weh1114_nb <- hex_passenger_weh_1114 %>%
+  mutate(nb = st_dist_band(area_honeycomb_grid),
+         wt = st_inverse_distance(nb, area_honeycomb_grid),
+         .before = 1) # to put them in the front
+
+# Weekend/holiday evening peak 4pm - 7pm (16:00 - 19:00)
+weh1619_nb <- hex_passenger_weh_1619 %>%
+  mutate(nb = st_dist_band(area_honeycomb_grid),
+         wt = st_inverse_distance(nb, area_honeycomb_grid),
+         .before = 1) # to put them in the front
+```
+
+Calculating LISA
+
+```{r}
+test_lisa <- wd1720_nb %>%
+  mutate(local_moran = local_moran(TOTAL_TRIP, nb, wt, nsim = 199),
+         .before = 1) %>%
+  unnest(local_moran)
+```
+
+```{r}
+tmap_mode('view')
+tm_shape(test_lisa)+
+  tm_fill(col = 'mean',
+          palette = "RdBu",
+    style = "cat",
+    title = "ii"
+  ) +
+  tm_borders(col = "grey40", lwd = 0.7)+
+  tm_basemap(server = c('Esri.WorldGrayCanvas'))
+```
