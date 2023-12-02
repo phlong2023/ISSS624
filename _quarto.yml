@@ -21,12 +21,15 @@ website:
             href: Hands-on_Ex/Hands-on_Ex3/Hands-on_Ex3.html
       - text: In-class Exercises
         menu: 
-          - text: In-class Exercise 1
+          - text: In-Class Exercise 1
             href: In-Class_Ex/In-Class_Ex1/In-class_Ex1.html
-          - text: In-class Exercise 2 - GLSA
+          - text: In-Class Exercise 2 - GLSA
             href: In-Class_Ex/In-Class_Ex2/In-class_Ex2_GLSA.html
-          - text: In-class Exercise 2 - EHSA
+          - text: In-Class Exercise 2 - EHSA
             href: In-Class_Ex/In-Class_Ex2/In-class_Ex2_EHSA.html
+          - text: In-Class Exercise 3
+            href: In-class_Ex/In-Class_Ex3/In-Class_Ex3.html
+          
       - text: Take-Home Exercise
         menu: 
           - text: (INPROGRESS) Take-Home Exercise 1

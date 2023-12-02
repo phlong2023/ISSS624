@@ -1,0 +1,116 @@
+---
+title: "In-class_Ex3"
+date: '2 December 2023'
+date-modified: 'last-modified'
+format: html
+execute: 
+  eval: true # run the code live
+  echo: true # all code will appear
+  warning: false # hide all warnings
+editor: visual
+---
+
+## Getting Started
+
+```{r}
+pacman::p_load(tmap, sf, sp, DT, performance, reshape2, ggpubr, units, tidyverse)
+```
+
+## The Data
+
+The following data will be used, as a continuation of Hands-on_Ex3:
+
+1.  *od_data.rds:* weekday morning peak passenger flows at planning subzone level.
+2.  *mpsz.rds:* URA Master Plan 2019 Planning Subzone boundary in simple feature tibble data frame format.
+
+Beside these two data sets, an additional attribute data file called pop.csv will be provided.
+
+### Importing Geospatial Data
+
+```{r}
+mpsz <- read_rds('data/rds/mpsz.rds')
+```
+
+### Converting from sf data.table to SpatialPolygonsDataFrame
+
+This is a way to convert a sf data.table to SpatialPolygonsDataFrame. However, the sf data.table is still the preferred format for analysis.
+
+```{r}
+# Untidy way
+mpsz_sp <- as(mpsz, 'Spatial')
+```
+
+## Distance matrix between centroids of each zone.
+
+*spDists()* of **sp** can be used to calculate the cent
+
+```{r}
+dist <- spDists(mpsz_sp, longlat = FALSE)
+```
+
+### Labelling columns and row headers of distance matrix
+
+```{r}
+sz_names <- mpsz$SUBZONE_C
+```
+
+Next we will attach SUBZONE_C names to the rows and columns of the distance matrix.
+
+```{r}
+colnames(dist) <- paste0(sz_names)
+rownames(dist) <- paste0(sz_names)
+```
+
+### Pivoting distance value by SUBZONE_C
+
+Next, we will pivot the distance matrix into a long table by using melt.
+
+```{r}
+distPair <- melt(dist) %>%
+  rename(dist = value)
+```
+
+### Updating intra-zonal distances
+
+```{r}
+distPair %>%
+  filter(dist > 0) %>%
+  summary()
+```
+
+Since Min inter-zonal distances is 173, we can roughly estimate the intra-zonal distance (distance between the centroid and the polygon's boundary).
+
+```{r}
+distPair$dist <- ifelse(distPair$dist == 0,
+                        50, distPair$dist)
+```
+
+We can also rename the column names in the table for easier manipulation further on.
+
+```{r}
+distPair <- distPair %>%
+  rename(orig = Var1,
+         dest = Var2)
+```
+
+## Importing Aspatial Data
+
+```{r}
+pop <- read_csv('data/aspatial/pop.csv')
+```
+
+```{r}
+pop <- pop %>%
+  left_join(mpsz,
+            by = c('PA' = 'PLN_AREA_N',
+                   'SZ' = 'SUBZONE_N')) %>%
+  select(1:6) %>%
+  rename(SZ_NAME = SZ,
+         SZ = SUBZONE_C)
+```
+
+## Importing Origin Attribute
+
+```{r}
+SIM_data <- read_rds('data/rds/SIM_data.rds')
+```

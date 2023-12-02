@@ -112,6 +112,12 @@ mpsz <- st_read(dsn = 'data/geospatial',
 mpsz
 ```
 
+We can write the mpsz sf tibble data frame into an rds file for future use.
+
+```{r}
+write_rds(mpsz, "data/rds/mpsz.rds")
+```
+
 ## Geospatial Data Wrangling
 
 ### Combining BusStop and mpsz
