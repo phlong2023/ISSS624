@@ -205,7 +205,7 @@ There are some notable arguments in the *st_make_grid()* function:
 :::
 
 ```{r}
-area_honeycomb_grid = st_make_grid(busstop, cellsize = c(250,250), what = 'polygons', square = FALSE)
+area_honeycomb_grid = st_make_grid(busstop, cellsize = c(500,500), what = 'polygons', square = FALSE)
 
 area_honeycomb_grid
 ```
@@ -359,10 +359,138 @@ hex_passenger_weh_1619 <- st_join(honeycomb_count, passenger_weh_1619_combined, 
 
 ```
 
-Let's try to map these hexagon grids to see if the visualization aligns with what we would expect.
+In sum, the analysis will revolve around the four following data frames which contain the spatial information of the hexagon as well as the total number of trips for each interested time frame:
+
+1.  hex_passenger_wd_69: Weekday morning peak 6am - 9am
+2.  hex_passenger_wd_1720: Weekday afternoon peak 5pm - 8pm (17:00 - 20:00)
+3.  hex_passenger_weh_1114: Weekend/holiday morning peak 11am - 2pm (11:00 - 14:00)
+4.  hex_passenger_weh_1619: Weekend/holiday evening peak 4pm - 7pm (16:00 - 19:00)
+
+## Cleanup Step
+
+Before we move on to Geovisualization and the analysis of LISA, it would be wise to remove objects which will no longer be used. This will help to free up memory for other tasks. *rm()* can be used to perform this task
+
+```{r}
+rm(list = c('area_honeycomb_grid', 'bushexmap', 'honeycomb_count', 'honeycomb_grid_sf',       'passenger_wd_1720', 'passenger_wd_1720_tallied', 'passenger_wd_1720_combined',    'passenger_wd_69', 'passenger_wd_69_tallied', 'passenger_wd_69_combined',      'passenger_weh_1114', 'passenger_weh_1114_tallied', 'passenger_weh_1114_combined',      'passenger_weh_1619', 'passenger_weh_1619_tallied', 'passenger_weh_1619_combined'))
+```
+
+## Geovisualization and Analysis
+
+The beginning step of the analysis would be to visualize the distribution of bus trips on the hexagon layer. This can be accomplished with the mapping functions of the **tmap** package. However, unlike the geovisualization of bus stop per hexagon, the number of trips for each hexagon depending on the time frame varies widely. Let's confirm this by drawing a histogram of the distribution of trips in each time frame.
+
+```{r}
+weekday_morning_hist <- ggplot(hex_passenger_wd_69, aes(x=TOTAL_TRIP))+
+  geom_histogram()+
+  scale_x_continuous(labels = scales::comma)+
+  ggtitle('Weekday Morning')+
+  theme_classic()
+
+weekday_evening_hist <- ggplot(hex_passenger_wd_1720, aes(x=TOTAL_TRIP))+
+  geom_histogram()+
+  scale_x_continuous(labels = scales::comma)+
+  ggtitle('Weekday Evening')+
+  theme_classic()
+  
+weekend_noon_hist <- ggplot(hex_passenger_weh_1114, aes(x=TOTAL_TRIP))+
+  geom_histogram()+
+  scale_x_continuous(labels = scales::comma)+
+  ggtitle('Weekend Noon')+
+  theme_classic()
+  
+weekend_evening_hist <- ggplot(hex_passenger_weh_1619, aes(x=TOTAL_TRIP))+
+  geom_histogram()+
+  scale_x_continuous(labels = scales::comma)+
+  ggtitle('Weekend Evening')+
+  theme_classic()
+  
+  
+gridExtra::grid.arrange(weekday_morning_hist, weekday_evening_hist, weekend_noon_hist, weekend_evening_hist,
+                        nrow = 2, ncol = 2)
+```
 
 ```{r}
 tmap_mode('view')
+
+### Weekday morning peak 6am - 9am
+# Quantile style
+weekday_morning_quantile <- tm_shape(hex_passenger_wd_69) +
+  tm_fill(
+    col = "TOTAL_TRIP",
+    palette = "Blues",
+    style = "quantile",
+    title = "Number of Trips",
+    id = "grid_id",
+    showNA = FALSE,
+    alpha = 0.7,
+    popup.vars = c(
+      "Number of Trips: " = "TOTAL_TRIP"
+    ),
+    popup.format = list(
+      TOTAL_TRIP = list(format = "f", digits = 0)
+    )
+  ) +
+  tm_borders(col = "grey40", lwd = 0.7)+
+  tm_basemap(server = c('Esri.WorldGrayCanvas'))+
+  tm_layout(title = 'Weekday Morning Peak (Quantile)', title.position = c('right', 'top'))
+
+# Pretty style
+weekday_morning_pretty <- tm_shape(hex_passenger_wd_69) +
+  tm_fill(
+    col = "TOTAL_TRIP",
+    palette = "Blues",
+    style = "pretty",
+    title = "Number of Trips",
+    id = "grid_id",
+    showNA = FALSE,
+    alpha = 0.7,
+    popup.vars = c(
+      "Number of Trips: " = "TOTAL_TRIP"
+    ),
+    popup.format = list(
+      TOTAL_TRIP = list(format = "f", digits = 0)
+    )
+  ) +
+  tm_borders(col = "grey40", lwd = 0.7)+
+  tm_basemap(server = c('Esri.WorldGrayCanvas'))+
+  tm_layout(title = 'Weekday Morning Peak (Jenk)', title.position = c('right', 'top'))
+
+# Equal style
+weekday_morning_equal <- tm_shape(hex_passenger_wd_69) +
+  tm_fill(
+    col = "TOTAL_TRIP",
+    palette = "Blues",
+    style = "equal",
+    title = "Number of Trips",
+    id = "grid_id",
+    showNA = FALSE,
+    alpha = 0.7,
+    popup.vars = c(
+      "Number of Trips: " = "TOTAL_TRIP"
+    ),
+    popup.format = list(
+      TOTAL_TRIP = list(format = "f", digits = 0)
+    )
+  ) +
+  tm_borders(col = "grey40", lwd = 0.7)+
+  tm_basemap(server = c('Esri.WorldGrayCanvas'))+
+  tm_layout(title = 'Weekday Morning Peak (Equal)', title.position = c('right', 'top'))
+
+tmap_arrange(weekday_morning_quantile, weekday_morning_pretty, weekday_morning_equal, asp = 1, ncol = 3)
+```
+
+As can be seen, only the 'quantile' style can display the difference in distribution of trips between the different hexagons. This can be attributed to the fact that the range of trips between the hexagons are too large. Therefore, it is possible to move forward using the 'quantile' style for visualization.
+
+::: warning
+It is good to remove the 3 plots created to plot the different styles since they will not be used and will only take up memory.
+
+```{r}
+rm(list=c('weekday_morning_equal','weekday_morning_quantile','weekday_morning_pretty'))
+```
+:::
+
+```{r}
+tmap_mode('view')
+
 # Weekday morning peak 6am - 9am
 weekday_morning <- tm_shape(hex_passenger_wd_69) +
   tm_fill(
@@ -457,17 +585,6 @@ Search for the bus stop near your place and compare the numbers between the four
 
 From the rough visualization, it's clear that not all bus stops experience a similar level of traffic throughout different timing of the days. Additionally, based on the quantiles created by **tmap,** it seems that the ranges of passenger traffic are radically different between the four time windows. For example, certain grids during Weekday Morning Peak, a hexagon could reach 328,545 passenger trips, whereas the highest number during Weekend/holiday Morning Peak only reaches 112,330.
 
-## Cleanup Step
-
-Before we move on to the analysis of LISA, it would be wise to remove objects which will no longer be used. This will help to free up memory for other tasks. *rm()* can be used to perform this task
-
-```{r}
-rm(list = c('area_honeycomb_grid', 'bushexmap', 'honeycomb_count', 'honeycomb_grid_sf', 
-     'passenger_wd_1720', 'passenger_wd_1720_tallied',    'passenger_wd_69', 'passenger_wd_69_tallied', 
-    'passenger_weh_1114', 'passenger_weh_1114_tallied',
-     'passenger_weh_1619', 'passenger_weh_1619_tallied'))
-```
-
 ## Local Indicators of Spatial Autocorrelation (LISA)
 
 ### Defining the Neighborhood
@@ -481,11 +598,11 @@ The first step to determining the neighborhood is to choose a method by which ne
 1.  Contiguity-based Method: Based on the sharing of boundaries, either edges and/or points (Queen and Rook method).
 2.  Distance-based Method: Based on the distances between the centroid (central point of each hexagon) of each polygon. This can either be set to a distance where each hexagon has at least one neighbor (Fixed Distance) or where each polygon has a certain number of neighbors (Adaptive Distance).
 
-It is important to choose the appropriate method according to each situation. However, in this study, Contiguity-based methods can be preemptively ruled out due to the fact that some cells have no co contiguous neighbors, as can be seen below.
+It is important to choose the appropriate method according to each situation. However, in this study, Contiguity-based methods can be preemptively ruled out due to the fact that some cells have no contiguous neighbors, as can be seen below.
 
-![**Isolated Cells**](Isolated_Cells.png)
+![**Isolated Cells**](Isolated_Cells_2.png)
 
-If the contiguity method is used, the LISA calculation for these cells would not be effective as they technically have no neighbors. This can be confirmed by using the *poly2nb()* function to create a Queen contiguity matrix for one time frame
+If the contiguity method is used, the LISA calculation for these cells would not be conducive for analysis as they technically have no neighbors. This can be confirmed by using the *st_contiguity()* function to create a Queen contiguity matrix for one time frame
 
 ```{r}
 wm_q <- st_contiguity(st_geometry(hex_passenger_wd_1720))
@@ -493,11 +610,11 @@ wm_q <- st_contiguity(st_geometry(hex_passenger_wd_1720))
 summary(wm_q)
 ```
 
-As can be seen from the weight matrix, 112 hexagon cells have 0 neighbor. **Therefore, a Distance-based Method would be suitable for analysis. Both Fixed Distance and Adaptive Distance methods will be utilized for more comprehensive comparison.**
+As can be seen from the weight matrix, 10 hexagon cells have 0 neighbor. **Therefore, a Distance-based Method would be suitable for analysis. Both Fixed Distance and Adaptive Distance methods will be utilized for more comprehensive comparison.**
 
-### Creating a Distance-based Neighborhood Matrix
+### Fixed Distance Weight Matrix
 
-#### Creating a Fixed Distance Weight Matrix
+#### Creating the Distance Matrix
 
 *st_dist_band()* of **sfdep** is incredibly powerful in that it can create a neighbor list based on distance between the centroid of polygons and a lower and upper bound distance to other centroid. The default arguments for *st_dist_band()* will find neighbors with a lower and upper bound so that each hexagon will have at least one neighbor. This is the equivalent of the steps in **spdep** of the function *knearneigh()* of k=1.
 
@@ -508,31 +625,56 @@ As can be seen from the weight matrix, 112 hexagon cells have 0 neighbor. **Ther
 wd69_nb <- hex_passenger_wd_69 %>%
   mutate(nb = st_dist_band(area_honeycomb_grid),
          wt = st_inverse_distance(nb, area_honeycomb_grid),
+         lag_trip = st_lag(TOTAL_TRIP,nb,wt),
          .before = 1) # to put them in the front
 
 # Weekday afternoon peak 5pm - 8pm (17:00 - 20:00)
 wd1720_nb <- hex_passenger_wd_1720 %>%
   mutate(nb = st_dist_band(area_honeycomb_grid),
          wt = st_inverse_distance(nb, area_honeycomb_grid),
+         lag_trip = st_lag(TOTAL_TRIP,nb,wt),
          .before = 1) # to put them in the front
 
 # Weekend/holiday morning peak 11am - 2pm (11:00 - 14:00)
 weh1114_nb <- hex_passenger_weh_1114 %>%
   mutate(nb = st_dist_band(area_honeycomb_grid),
          wt = st_inverse_distance(nb, area_honeycomb_grid),
+         lag_trip = st_lag(TOTAL_TRIP,nb,wt),
          .before = 1) # to put them in the front
 
 # Weekend/holiday evening peak 4pm - 7pm (16:00 - 19:00)
 weh1619_nb <- hex_passenger_weh_1619 %>%
   mutate(nb = st_dist_band(area_honeycomb_grid),
          wt = st_inverse_distance(nb, area_honeycomb_grid),
+         lag_trip = st_lag(TOTAL_TRIP,nb,wt),
          .before = 1) # to put them in the front
 ```
 
-Calculating LISA
+#### Calculating LISA
+
+*local_moran()* of the **sfdep** package can be used to calculate Local Moran's I Statistic and other related statistics.
 
 ```{r}
-test_lisa <- wd1720_nb %>%
+# Weekday morning peak 6am - 9am
+wd69_lisa <- wd69_nb %>%
+  mutate(local_moran = local_moran(TOTAL_TRIP, nb, wt, nsim = 199),
+         .before = 1) %>%
+  unnest(local_moran)
+
+# Weekday afternoon peak 5pm - 8pm (17:00 - 20:00)
+wd1720_lisa <- wd1720_nb %>%
+  mutate(local_moran = local_moran(TOTAL_TRIP, nb, wt, nsim = 199),
+         .before = 1) %>%
+  unnest(local_moran)
+
+# Weekend/holiday morning peak 11am - 2pm (11:00 - 14:00)
+weh1114_lisa <- weh1114_nb %>%
+  mutate(local_moran = local_moran(TOTAL_TRIP, nb, wt, nsim = 199),
+         .before = 1) %>%
+  unnest(local_moran)
+
+# Weekend/holiday evening peak 4pm - 7pm (16:00 - 19:00)
+weh1619_lisa <- weh1619_nb %>%
   mutate(local_moran = local_moran(TOTAL_TRIP, nb, wt, nsim = 199),
          .before = 1) %>%
   unnest(local_moran)
@@ -540,7 +682,7 @@ test_lisa <- wd1720_nb %>%
 
 ```{r}
 tmap_mode('view')
-tm_shape(test_lisa)+
+tm_shape(wd1720_lisa)+
   tm_fill(col = 'mean',
           palette = "RdBu",
     style = "cat",
