@@ -216,7 +216,7 @@ Firstly, a hexagon or honeycomb grid can be created based on the busstop data fr
 ::: callout-note
 There are some notable arguments in the *st_make_grid()* function:
 
--   cellsize = c(100,100): This argument indicates the size of each hexagon. If the cell size is large, each hexagon can encompasses multiple bus stops, whereas if a smaller cell size can help us differentiate between individual bus stop. However, a smaller cell size with many hexagons will take more time to create.
+-   cellsize = c(500,500): This argument indicates the size of each hexagon, calculated as the distance between opposite edges. If the cell size is large, each hexagon can encompasses multiple bus stops, whereas if a smaller cell size can help us differentiate between individual bus stop. However, a smaller cell size with many hexagons will take more time to create. For this study, hexagons of 250m (this distance is the perpendicular distance between the centre of the hexagon and its edges) will be created with the parameter of 500.
 
 -   what = 'polygons': We would like to create polygons on a grid.
 
@@ -257,21 +257,13 @@ honeycomb_count = filter(honeycomb_grid_sf, n_busstop > 0)
 At this point, the hexagon grid of bus stop can be drawn onto a map of Singapore using the functions of the **tmap** package. Additionally, the n_busstop column can be passed to the *tm_fill()* function to shade the cell based on the number of bus stops in it.
 
 ::: callout-note
-Several functions are added to make the map interactive and aesthetically pleasing
-
--   tmap_mode('view'): Creates an interactive map which allow zooming and interacting with cells on the map
-
--   pop.vars: Identifying the legend and value which pops up when a cell is selected. In this case, it is the number of bus stops.
-
--   popup.format: Specifying the format of the variable to be displayed when selecting a cell.
-
 -   tm_basemap: Choosing the basemap layer on which the hexagon grid will be drawn. OpenStreetMap is chosen due to its high fidelity while not being overly crowded. Additionally, OpenStreetMap displays icon for bus stops in Singapore, allowing user to visually check any cell.
 
     -   If an incorrect CRS was specified in the earlier steps, the basemap will be of an incorrect location or alignment.
 :::
 
 ```{r}
-tmap_mode('view')
+tmap_mode('plot')
 
 bushexmap <- tm_shape(honeycomb_count)+
   tm_fill(
@@ -290,16 +282,13 @@ bushexmap <- tm_shape(honeycomb_count)+
     )
   ) +
   tm_borders(col = "grey40", lwd = 0.7)+
-  tm_basemap(server = c('Esri.WorldGrayCanvas'))
+  tm_basemap(server = c('Esri.WorldGrayCanvas'))+
+  tm_layout(main.title = 'Distribution of Bus Stops', main.title.position = 'center')
 
 bushexmap
 ```
 
-::: callout-note
-Search for the bus stop near your place and compare the numbers between the four maps by zooming in! Do you think it's accurate?
-:::
-
-By looking at the illustration, we can see that each cell might contain up to ten bus stops. A bar chat can be drawn with the **ggplot2** package to visualize the distribution of number of bus stop in each cell.
+From the illustration, we can see that each cell might contain up to ten bus stops. A bar chat can be drawn with the **ggplot2** package to visualize the distribution of number of bus stop in each cell.
 
 ```{r}
 ggplot(honeycomb_count, aes(x=n_busstop))+
@@ -393,7 +382,9 @@ Before we move on to Geovisualization and the analysis of LISA, it would be wise
 rm(list = c('area_honeycomb_grid', 'bushexmap', 'honeycomb_count', 'honeycomb_grid_sf',       'passenger_wd_1720', 'passenger_wd_1720_tallied', 'passenger_wd_1720_combined',    'passenger_wd_69', 'passenger_wd_69_tallied', 'passenger_wd_69_combined',      'passenger_weh_1114', 'passenger_weh_1114_tallied', 'passenger_weh_1114_combined',      'passenger_weh_1619', 'passenger_weh_1619_tallied', 'passenger_weh_1619_combined'))
 ```
 
-## Geovisualization and Analysis
+## Exploratory Data Analysis
+
+### Descriptive Analysis of Bus Trips
 
 The beginning step of the analysis would be to visualize the distribution of bus trips on the hexagon layer. This can be accomplished with the mapping functions of the **tmap** package. However, unlike the geovisualization of bus stop per hexagon, the number of trips for each hexagon depending on the time frame varies widely. Let's confirm this by drawing a histogram of the distribution of trips in each time frame.
 
@@ -404,16 +395,16 @@ weekday_morning_hist <- ggplot(hex_passenger_wd_69, aes(x=TOTAL_TRIP))+
   ggtitle('Weekday Morning')+
   theme_classic()
 
-weekday_evening_hist <- ggplot(hex_passenger_wd_1720, aes(x=TOTAL_TRIP))+
+weekday_afternoon_hist <- ggplot(hex_passenger_wd_1720, aes(x=TOTAL_TRIP))+
   geom_histogram()+
   scale_x_continuous(labels = scales::comma)+
   ggtitle('Weekday Evening')+
   theme_classic()
   
-weekend_noon_hist <- ggplot(hex_passenger_weh_1114, aes(x=TOTAL_TRIP))+
+weekend_morning_hist <- ggplot(hex_passenger_weh_1114, aes(x=TOTAL_TRIP))+
   geom_histogram()+
   scale_x_continuous(labels = scales::comma)+
-  ggtitle('Weekend Noon')+
+  ggtitle('Weekend Morning')+
   theme_classic()
   
 weekend_evening_hist <- ggplot(hex_passenger_weh_1619, aes(x=TOTAL_TRIP))+
@@ -423,11 +414,31 @@ weekend_evening_hist <- ggplot(hex_passenger_weh_1619, aes(x=TOTAL_TRIP))+
   theme_classic()
   
   
-gridExtra::grid.arrange(weekday_morning_hist, weekday_evening_hist, weekend_noon_hist, weekend_evening_hist,
-                        nrow = 2, ncol = 2)
+gridExtra::grid.arrange(weekday_morning_hist, weekday_afternoon_hist, weekend_morning_hist, weekend_evening_hist, nrow = 2, ncol = 2)
 ```
 
 Upon a brief inspection, it is possible to see that the range of trips between the different time periods are very different from each other, with Weekday Evening trips going above 300,000 for some hexagons, while Weekend Noon only ranging around 80,000 for its hexagons. By plotting this on map, we will get to see the geospatial distribution of the number of trips for each time frame.
+
+Before plotting, the *summary()* function can be used to compute the average number of trips for each time frame. By seeing the quantile statistics, the difference in trips between each time frame can be better illuminated.
+
+```{r}
+# Apply summary() to each data frame
+weekday_morning_summary <- summary(hex_passenger_wd_69$TOTAL_TRIP)
+weekday_afternoon_summary <- summary(hex_passenger_wd_1720$TOTAL_TRIP)
+weekend_morning_summary <- summary(hex_passenger_weh_1114$TOTAL_TRIP)
+weekend_evening_summary <- summary(hex_passenger_weh_1619$TOTAL_TRIP)
+
+# Combine the summary results into one data frame
+summary_df <- data.frame(unclass(weekday_morning_summary), unclass(weekday_afternoon_summary), unclass(weekend_morning_summary), unclass(weekend_evening_summary))
+
+colnames(summary_df) <- c('Weekday Morning', 'Weekday Afternoon', 'Weekend Morning', 'Weekend Evening')
+
+summary_df
+```
+
+From the summary table, it is possible to see that the two Weekday data frames resemble each other more while the two Weekend data frames are more similar. In terms of the Mean number of across hexagon cells, Weekday Morning and Weekday Afternoon are relatively similar. However, the Max number of trips for Weekday Afternoon is larger than Weekday Morning's by roughly 127.3%. Similarly, Weekend/Holiday Evening and Weekend/Holiday Morning have a similar Mean number of trips, but the Max number for Weekend/Holiday Evening is higher than that of Weekend/Holiday Morning by 30.4%. Overall, the number of trips in all quantile are roughly double during the Weekday than compared to the Weekends.
+
+### Geovisualization and Analysis
 
 Before we map all four time frames, however, it is important to consider that the 'style' argument of *tm_fill()* can take on many values (pretty, quantile, equal, etc.). In order to pick an appropriate 'style', we can pick one time frame and plot it using three different styles to determine the best way to depict the distribution.
 
@@ -454,7 +465,7 @@ weekday_morning_quantile <- tm_shape(hex_passenger_wd_69) +
   ) +
   tm_borders(col = "grey40", lwd = 0.7)+
   tm_basemap(server = c('Esri.WorldGrayCanvas'))+
-  tm_layout(title = 'Weekday Morning Peak (Quantile)', title.position = c('right', 'top'))
+  tm_layout(title = 'Weekday Morning Peak (Quantile)', title.position = c('right', 'top'), scale = 0.7)
 
 # Jenks style
 weekday_morning_jenks <- tm_shape(hex_passenger_wd_69) +
@@ -475,7 +486,7 @@ weekday_morning_jenks <- tm_shape(hex_passenger_wd_69) +
   ) +
   tm_borders(col = "grey40", lwd = 0.7)+
   tm_basemap(server = c('Esri.WorldGrayCanvas'))+
-  tm_layout(title = 'Weekday Morning Peak (Jenks)', title.position = c('right', 'top'))
+  tm_layout(title = 'Weekday Morning Peak (Jenks)', title.position = c('right', 'top'), scale = 0.7)
 
 # Equal style
 weekday_morning_equal <- tm_shape(hex_passenger_wd_69) +
@@ -496,12 +507,12 @@ weekday_morning_equal <- tm_shape(hex_passenger_wd_69) +
   ) +
   tm_borders(col = "grey40", lwd = 0.7)+
   tm_basemap(server = c('Esri.WorldGrayCanvas'))+
-  tm_layout(title = 'Weekday Morning Peak (Equal)', title.position = c('right', 'top'))
+  tm_layout(title = 'Weekday Morning Peak (Equal)', title.position = c('right', 'top'), scale = 0.7)
 
-tmap_arrange(weekday_morning_quantile, weekday_morning_jenks, weekday_morning_equal, asp = 1, ncol = 3)
+tmap_arrange(weekday_morning_quantile, weekday_morning_jenks, weekday_morning_equal, nrow = 3, sync = TRUE)
 ```
 
-As can be seen, the 'quantile' and 'jenks' style can better display the difference in distribution of trips between the different hexagons. This can be attributed to the fact that the range of trips between the hexagons are too large. However, the 'quantile' function suffers from its final grouping, containing values from roughly 5,539 to 136,490; this resulted int the oversaturation of the high value hexagons. On the other hand, the 'jenks' method "divides the features into classes whose boundaries are where there are relatively big differences in the data values" ([Reference](https://pro.arcgis.com/en/pro-app/latest/help/mapping/layer-properties/data-classification-methods.htm)). Therefore, it is possible to move forward using the 'jenks' style for visualization, but by adjusting the breaks to provide more stratification in the hexagon colors for better visualization..
+As can be seen, the 'quantile' and 'jenks' style can better display the difference in distribution of trips between the different hexagons, allowing for more differentiated shades. However, the 'quantile' function suffers from its final grouping, containing values from roughly 5,539 to 136,490; this resulted int the oversaturation of the high value hexagons. On the other hand, the 'jenks' method "divides the features into classes whose boundaries are where there are relatively big differences in the data values" ([Reference](https://pro.arcgis.com/en/pro-app/latest/help/mapping/layer-properties/data-classification-methods.htm)). Therefore, it is possible to move forward using the 'jenks' style for visualization, but by adjusting the breaks to provide more stratification in the hexagon colors for better visualization..
 
 ::: warning
 It is good to remove the 3 plots created to plot the different styles since they will not be used and will only take up memory.
@@ -612,9 +623,7 @@ From the rough visualization, it's clear that not all bus stops experience a sim
 
 An important observation seems to be that there darker shaded hexagons tend to be clustered, indicating a positive spatial autocorrelation. However, there are clearly hexagons which are much darker than its surrounding tiles (such as the one near Tampines), indicating negative spatial autocorrelation. By conducting LISA analysis, it will be possible to determine the level of spatial autocorrelation for each hexagon, visualize them, as well as to depict the relationship between a hexagon and its neighbors through a LISA cluster map.
 
-## Local Indicators of Spatial Autocorrelation (LISA)
-
-### Defining the Neighborhood
+## Defining the Neighborhood
 
 Before the LISA analysis can be conducted, it is important to define our neighborhood, or the neighbors of each polygon. This is based on the ideas that neighbors, or spatial objects which are related to other spatial objects based on sharing a common boundary or lying with a certain distance of one another, might affect each other.
 
@@ -639,11 +648,11 @@ summary(wm_q)
 
 As can be seen from the weight matrix, 10 hexagon cells have 0 neighbor. **Therefore, a Distance-based Method would be suitable for analysis. Both Fixed Distance and Adaptive Distance Weight Matrix can be created for comparison to find the most appropriate method.**
 
-### Fixed Distance Weight Matrix
+### Finding the Appropriate Distance Matrix
 
-#### Creating the Distance Matrix
+#### Creating the Fixed Distance Matrix
 
-*st_dist_band()* of **sfdep** is incredibly powerful in that it can create a neighbor list based on distance between the centroid of polygons and a lower and upper bound distance to other centroid. The default arguments for *st_dist_band()* will find neighbors with a lower and upper bound so that each hexagon will have at least one neighbor. This is the equivalent of the steps in **spdep** of the function *knearneigh()* of k=1.
+*st_dist_band()* of **sfdep** is incredibly powerful in that it can create a neighbor list based on distance between the centroid of polygons and a lower and upper bound distance to other centroid. The default arguments for *st_dist_band()* will define a lower and upper bound distance from the centroid of a polygon so that each hexagon will have at least one neighbor. This is the equivalent of the steps in **spdep** of the function *knearneigh()* of k=1.
 
 *st_inverse_distance()* of a **sfdep** can be combined with *st_dist_band()* in a **dplyr** step to create a new column in each data frame of the different time frames to create a neighbor list and a inverse distance weight list. Additionally, *st_lag()* can be used to create a spatially lagged value column for total trips based on the weight of neighbors.
 
@@ -677,18 +686,75 @@ weh1619_nb <- hex_passenger_weh_1619 %>%
          .before = 1) # to put them in the front
 ```
 
+#### Examining the Fixed Distance Method
+
 Since the hexagon tiles is stable across all time frame, it is possible to plot the neighbor relationship for only one time frame in order to visualize the neighbors list created. Let's take Weekday morning peak 6am - 9am. By visualizing, the appropriateness of the Fixed Distance Method can be roughly determined.
 
 ```{r}
 plot(wd69_nb$area_honeycomb_grid, border = 'lightgrey')
+plot(wd69_nb$nb, st_centroid(wd69_nb$area_honeycomb_grid), add=TRUE)
 plot(st_knn(wd69_nb$area_honeycomb_grid, k = 1), st_centroid(wd69_nb$area_honeycomb_grid), add=TRUE, col = 'red', length = 0.08)
 ```
 
+Due to the large number of hexagons, the visualization is too dense to delineate any helpful details. However, the *summary()* function might be of some help to study the neighbors list. Similar to be fore, we ony need to test one time frame.
+
+```{r}
+summary(wd69_nb$nb)
+```
+
+As can be seen, there are many hexagons with less than 30 neighbors. However, the average number of links is still over 50. This is a draw back of the Fixed Distance method, hexagon cells in denser areas will have more neighbors while those in the periphery or isolated positions will have fewer neighbors. Yet, this lack of neighbor might affect the LISA calculation as the effect of spatial autocorrelation might be smoothed out for those cells with many neighbors
+
 Between the Fixed Distance and Adaptive Distance Matrix, an Adaptive Distance Matrix would be more appropriate to the non-uniform nature of bus stop spatial distribution across the map. Using Adaptive Distance would allow for the specification of the number of neighbors, allowing for the standardisation of the LISA analysis process across hexagons.
 
-#### Calculating LISA
+### Creating the Adaptive Distance Matrix
 
-*local_moran()* of the **sfdep** package can be used to calculate Local Moran's I Statistic and other related statistics.
+The creation of the Adaptive Distance Weight list is largely similar to that of the Fixed Distance Weight list thanks to the **sfdep** package. The only major amendment is the usage of *st_knn()* instead of *st_distance_band(). st_knn()* allows for the forcing of a certain of neighbors for each hexagon cell. This can be accomplished by passing the k argument to *st_knn().*
+
+```{r}
+# Weekday morning peak 6am - 9am
+wd69_nb <- hex_passenger_wd_69 %>%
+  mutate(nb = st_knn(area_honeycomb_grid, k = 6),
+         wt = st_inverse_distance(nb, area_honeycomb_grid),
+         lag_trip = st_lag(TOTAL_TRIP,nb,wt),
+         .before = 1) # to put them in the front
+
+# Weekday afternoon peak 5pm - 8pm (17:00 - 20:00)
+wd1720_nb <- hex_passenger_wd_1720 %>%
+  mutate(nb = st_knn(area_honeycomb_grid, k = 6),
+         wt = st_inverse_distance(nb, area_honeycomb_grid),
+         lag_trip = st_lag(TOTAL_TRIP,nb,wt),
+         .before = 1) # to put them in the front
+
+# Weekend/holiday morning peak 11am - 2pm (11:00 - 14:00)
+weh1114_nb <- hex_passenger_weh_1114 %>%
+  mutate(nb = st_knn(area_honeycomb_grid, k = 6),
+         wt = st_inverse_distance(nb, area_honeycomb_grid),
+         lag_trip = st_lag(TOTAL_TRIP,nb,wt),
+         .before = 1) # to put them in the front
+
+# Weekend/holiday evening peak 4pm - 7pm (16:00 - 19:00)
+weh1619_nb <- hex_passenger_weh_1619 %>%
+  mutate(nb = st_knn(area_honeycomb_grid, k = 6),
+         wt = st_inverse_distance(nb, area_honeycomb_grid),
+         lag_trip = st_lag(TOTAL_TRIP,nb,wt),
+         .before = 1) # to put them in the front
+```
+
+Similar to before, the *summary()* function can be used to check the average number of neighbors for each cell.
+
+```{r}
+summary(wd69_nb$nb)
+```
+
+It can be seen that all hexagon cells now have 6 neighbors. The LISA calculation can commence.
+
+## Local Indicators of Spatial Autocorrelation (LISA)
+
+The statistical test used for LISA in this study will be the Local Moran's I.
+
+### Calculating Local Moran's I
+
+*local_moran()* of the **sfdep** package can be used to calculate Local Moran's I Statistic and other related statistics. the *unnest()* function is used to unpack the Local Moran's statistics into separate columns.
 
 ```{r}
 # Weekday morning peak 6am - 9am
@@ -714,16 +780,223 @@ weh1619_lisa <- weh1619_nb %>%
   mutate(local_moran = local_moran(TOTAL_TRIP, nb, wt, nsim = 199),
          .before = 1) %>%
   unnest(local_moran)
+
+# Examining the first 5 rows of the new data frame
+head(weh1619_lisa)
 ```
+
+A host of statistics related to the Local Moran's I have been added to the data frame including the I statistic (ii), the p-value (p_ii), and the mean cluster (mean). This will help us to create visualizations that will shed light onto the phenomenon of spatial autocorrelation in the different time frames.
+
+### Mapping Local Moran's I
+
+#### Mapping Local Moran's I Values and p-values
+
+In order to effectively visualize the Local Moran's I statistics for each time frame, it is preferable to plot the Local Moran's I values and p-values side by side. At this point, creating the visualization for each time frame separately instead of all together will allow for easier analysis.
+
+::: callout-note
+As we would like to only display p-values which indicate statistical significance, we will create a custom color palette to indicate that any p-value above 0.05 will be displayed as blank.
+:::
+
+::: callout-note
+Several functions are added to make the map interactive and aesthetically pleasing
+
+-   tmap_mode('view'): Creates an interactive map which allow zooming and interacting with cells on the map
+
+-   pop.vars: Identifying the legend and value which pops up when a cell is selected. In this case, it is the number of bus stops.
+
+-   popup.format: Specifying the format of the variable to be displayed when selecting a cell.
+:::
+
+##### **Weekday morning peak 6am - 9am**
+
+```{r}
+p_value_color = c('#ffffff', '#bdd7e7','#6baed6', '#2171b5')
+
+tmap_mode('view')
+
+# Spatially Lagged Values
+wd69.lag <- tm_shape(wd69_lisa)+
+  tm_fill('lag_trip',
+          style = "jenks", 
+          title = "Local Moran's I Statistics",
+          id = 'grid_id',
+          popup.vars = c(
+            "Spatially Lagged Trips: " = "lag_trip"),
+          popup.format = list(
+            lag_trip = list(format = "f", digits = 0)))+
+  tm_borders(alpha = 0.5)+
+  tm_layout(main.title = "Weekend/holiday Morning Spatially Lagged Trips", main.title.position = "center")
+
+# Local Moran's I Statistics
+wd69.localmi <- tm_shape(wd69_lisa)+
+  tm_fill('ii',
+          style = "pretty", 
+          title = "Local Moran's I Statistics",
+          id = 'grid_id',
+          popup.vars = c(
+            "I Statistic: " = "ii"),
+          popup.format = list(
+            ii = list(format = "f", digits = 5)))+
+  tm_borders(alpha = 0.5)+
+  tm_layout(main.title = "Weekday Morning Local Moran's I values", main.title.position = "center")
+
+# Local Moran's I p-values
+wd69.pvalue <- tm_shape(wd69_lisa)+
+  tm_fill('p_ii',
+          breaks = c(-Inf, 0.001, 0.01, 0.05, Inf),
+          palette = rev(p_value_color),
+          title = "Local Moran's I p-values",
+          id = 'grid_id',
+          popup.vars = c(
+            "p-value: " = "p_ii"),
+          popup.format = list(
+            p_ii = list(format = "f", digits = 5)))+
+  tm_borders(alpha = 0.5)+
+  tm_layout(main.title = "Weekday Morning Local Moran's I p-values", main.title.position = "center")
+
+tmap_arrange(wd69.lag, wd69.localmi, wd69.pvalue, nrow = 3, sync = TRUE)
+```
+
+##### **Weekday afternoon peak 5pm - 8pm (17:00 - 20:00)**
 
 ```{r}
 tmap_mode('view')
-tm_shape(wd1720_lisa)+
-  tm_fill(col = 'mean',
-          palette = "RdBu",
-    style = "cat",
-    title = "ii"
-  ) +
-  tm_borders(col = "grey40", lwd = 0.7)+
-  tm_basemap(server = c('Esri.WorldGrayCanvas'))
+
+# Spatially Lagged Values
+wd1720.lag <- tm_shape(wd1720_lisa)+
+  tm_fill('lag_trip',
+          style = "jenks", 
+          title = "Local Moran's I Statistics",
+          id = 'grid_id',
+          popup.vars = c(
+            "Spatially Lagged Trips: " = "lag_trip"),
+          popup.format = list(
+            lag_trip = list(format = "f", digits = 0)))+
+  tm_borders(alpha = 0.5)+
+  tm_layout(main.title = "Weekend/holiday Morning Spatially Lagged Trips", main.title.position = "center")
+
+# Local Moran's I Statistics
+wd1720.localmi <- tm_shape(wd1720_lisa)+
+  tm_fill('ii',
+          style = "pretty", 
+          title = "Local Moran's I Statistics",
+          id = 'grid_id',
+          popup.vars = c(
+            "I Statistic: " = "ii"),
+          popup.format = list(
+            ii = list(format = "f", digits = 5)))+
+  tm_borders(alpha = 0.5)+
+  tm_layout(main.title = "Weekday Afternoon Local Moran's I values", main.title.position = "center")
+
+# Local Moran's I p-values
+wd1720.pvalue <- tm_shape(wd1720_lisa)+
+  tm_fill('p_ii',
+          breaks = c(-Inf, 0.001, 0.01, 0.05, Inf),
+          palette = rev(p_value_color),
+          title = "Local Moran's I p-values",
+          id = 'grid_id',
+          popup.vars = c(
+            "p-value: " = "p_ii"),
+          popup.format = list(
+            p_ii = list(format = "f", digits = 5)))+
+  tm_borders(alpha = 0.5)+
+  tm_layout(main.title = "Weekday Afternoon Local Moran's I p-values", main.title.position = "center")
+
+tmap_arrange(wd1720.lag, wd1720.localmi, wd1720.pvalue, nrow = 3, sync = TRUE)
+```
+
+##### Weekend/holiday morning peak 11am - 2pm (11:00 - 14:00)
+
+```{r}
+tmap_mode('view')
+
+# Spatially Lagged Values
+weh1114.lag <- tm_shape(weh1114_lisa)+
+  tm_fill('lag_trip',
+          style = "jenks", 
+          title = "Local Moran's I Statistics",
+          id = 'grid_id',
+          popup.vars = c(
+            "Spatially Lagged Trips: " = "lag_trip"),
+          popup.format = list(
+            lag_trip = list(format = "f", digits = 0)))+
+  tm_borders(alpha = 0.5)+
+  tm_layout(main.title = "Weekend/holiday Morning Spatially Lagged Trips", main.title.position = "center")
+
+# Local Moran's I Statistics
+weh1114.localmi <- tm_shape(weh1114_lisa)+
+  tm_fill('ii',
+          style = "pretty", 
+          title = "Local Moran's I Statistics",
+          id = 'grid_id',
+          popup.vars = c(
+            "I Statistic: " = "ii"),
+          popup.format = list(
+            ii = list(format = "f", digits = 5)))+
+  tm_borders(alpha = 0.5)+
+  tm_layout(main.title = "Weekend/holiday Morning Local Moran's I values", main.title.position = "center")
+
+# Local Moran's I p-values
+weh1114.pvalue <- tm_shape(weh1114_lisa)+
+  tm_fill('p_ii',
+          breaks = c(-Inf, 0.001, 0.01, 0.05, Inf),
+          palette = rev(p_value_color),
+          title = "Local Moran's I p-values",
+          id = 'grid_id',
+          popup.vars = c(
+            "p-value: " = "p_ii"),
+          popup.format = list(
+            p_ii = list(format = "f", digits = 5)))+
+  tm_borders(alpha = 0.5)+
+  tm_layout(main.title = "Weekend/holiday Morning Local Moran's I p-values", main.title.position = "center")
+
+tmap_arrange(weh1114.localmi, weh1114.pvalue, nrow = 2, sync = TRUE)
+```
+
+##### Weekend/holiday evening peak 4pm - 7pm (16:00 - 19:00)
+
+```{r}
+tmap_mode('view')
+
+# Spatially Lagged Values
+weh1619.lag <- tm_shape(weh1619_lisa)+
+  tm_fill('lag_trip',
+          style = "jenks", 
+          title = "Local Moran's I Statistics",
+          id = 'grid_id',
+          popup.vars = c(
+            "Spatially Lagged Trips: " = "lag_trip"),
+          popup.format = list(
+            lag_trip = list(format = "f", digits = 0)))+
+  tm_borders(alpha = 0.5)+
+  tm_layout(main.title = "Weekend/holiday Morning Spatially Lagged Trips", main.title.position = "center")
+
+# Local Moran's I Statistics
+weh1619.localmi <- tm_shape(weh1619_lisa)+
+  tm_fill('ii',
+          style = "pretty", 
+          title = "Local Moran's I Statistics",
+          id = 'grid_id',
+          popup.vars = c(
+            "I Statistic: " = "ii"),
+          popup.format = list(
+            ii = list(format = "f", digits = 5)))+
+  tm_borders(alpha = 0.5)+
+  tm_layout(main.title = "Weekend/holiday Morning Local Moran's I values", main.title.position = "center")
+
+# Local Moran's I p-values
+weh1619.pvalue <- tm_shape(weh1619_lisa)+
+  tm_fill('p_ii',
+          breaks = c(-Inf, 0.001, 0.01, 0.05, Inf),
+          palette = rev(p_value_color),
+          title = "Local Moran's I p-values",
+          id = 'grid_id',
+          popup.vars = c(
+            "p-value: " = "p_ii"),
+          popup.format = list(
+            p_ii = list(format = "f", digits = 5)))+
+  tm_borders(alpha = 0.5)+
+  tm_layout(main.title = "Weekend/holiday Morning Local Moran's I p-values", main.title.position = "center")
+
+tmap_arrange(weh1619.lag, weh1619.localmi, weh1619.pvalue, nrow = 3, sync = TRUE)
 ```
