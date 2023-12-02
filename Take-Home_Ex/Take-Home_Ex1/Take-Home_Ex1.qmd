@@ -818,7 +818,7 @@ tmap_mode('view')
 wd69.lag <- tm_shape(wd69_lisa)+
   tm_fill('lag_trip',
           style = "jenks", 
-          title = "Local Moran's I Statistics",
+          title = "Spatially Lagged Trips",
           id = 'grid_id',
           popup.vars = c(
             "Spatially Lagged Trips: " = "lag_trip"),
@@ -866,7 +866,7 @@ tmap_mode('view')
 wd1720.lag <- tm_shape(wd1720_lisa)+
   tm_fill('lag_trip',
           style = "jenks", 
-          title = "Local Moran's I Statistics",
+          title = "Spatially Lagged Trips",
           id = 'grid_id',
           popup.vars = c(
             "Spatially Lagged Trips: " = "lag_trip"),
@@ -914,7 +914,7 @@ tmap_mode('view')
 weh1114.lag <- tm_shape(weh1114_lisa)+
   tm_fill('lag_trip',
           style = "jenks", 
-          title = "Local Moran's I Statistics",
+          title = "Spatially Lagged Trips",
           id = 'grid_id',
           popup.vars = c(
             "Spatially Lagged Trips: " = "lag_trip"),
@@ -950,7 +950,7 @@ weh1114.pvalue <- tm_shape(weh1114_lisa)+
   tm_borders(alpha = 0.5)+
   tm_layout(main.title = "Weekend/holiday Morning Local Moran's I p-values", main.title.position = "center")
 
-tmap_arrange(weh1114.localmi, weh1114.pvalue, nrow = 2, sync = TRUE)
+tmap_arrange(weh1114.lag, weh1114.localmi, weh1114.pvalue, nrow = 2, sync = TRUE)
 ```
 
 ##### Weekend/holiday evening peak 4pm - 7pm (16:00 - 19:00)
@@ -962,7 +962,7 @@ tmap_mode('view')
 weh1619.lag <- tm_shape(weh1619_lisa)+
   tm_fill('lag_trip',
           style = "jenks", 
-          title = "Local Moran's I Statistics",
+          title = "Spatially Lagged Trips",
           id = 'grid_id',
           popup.vars = c(
             "Spatially Lagged Trips: " = "lag_trip"),
