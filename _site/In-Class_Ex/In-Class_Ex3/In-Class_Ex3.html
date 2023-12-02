@@ -219,8 +219,25 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#pivoting-distance-value-by-subzone_c" id="toc-pivoting-distance-value-by-subzone_c" class="nav-link" data-scroll-target="#pivoting-distance-value-by-subzone_c">Pivoting distance value by SUBZONE_C</a></li>
   <li><a href="#updating-intra-zonal-distances" id="toc-updating-intra-zonal-distances" class="nav-link" data-scroll-target="#updating-intra-zonal-distances">Updating intra-zonal distances</a></li>
   </ul></li>
-  <li><a href="#importing-aspatial-data" id="toc-importing-aspatial-data" class="nav-link" data-scroll-target="#importing-aspatial-data">Importing Aspatial Data</a></li>
-  <li><a href="#importing-origin-attribute" id="toc-importing-origin-attribute" class="nav-link" data-scroll-target="#importing-origin-attribute">Importing Origin Attribute</a></li>
+  <li><a href="#preparing-flow-data" id="toc-preparing-flow-data" class="nav-link" data-scroll-target="#preparing-flow-data">Preparing flow data</a>
+  <ul class="collapse">
+  <li><a href="#separating-intra-flow-from-passenger-volume-df" id="toc-separating-intra-flow-from-passenger-volume-df" class="nav-link" data-scroll-target="#separating-intra-flow-from-passenger-volume-df">Separating intra-flow from passenger volume df</a></li>
+  <li><a href="#combining-passenger-volume-data-with-distance-value" id="toc-combining-passenger-volume-data-with-distance-value" class="nav-link" data-scroll-target="#combining-passenger-volume-data-with-distance-value">Combining passenger volume data with distance value</a></li>
+  </ul></li>
+  <li><a href="#preparing-origin-and-destination-attributes" id="toc-preparing-origin-and-destination-attributes" class="nav-link" data-scroll-target="#preparing-origin-and-destination-attributes">Preparing Origin and Destination Attributes</a>
+  <ul class="collapse">
+  <li><a href="#importing-population-data" id="toc-importing-population-data" class="nav-link" data-scroll-target="#importing-population-data">Importing Population Data</a></li>
+  <li><a href="#geospatial-data-wrangling" id="toc-geospatial-data-wrangling" class="nav-link" data-scroll-target="#geospatial-data-wrangling">Geospatial Data Wrangling</a></li>
+  <li><a href="#preparing-origin-attribute" id="toc-preparing-origin-attribute" class="nav-link" data-scroll-target="#preparing-origin-attribute">Preparing Origin Attribute</a></li>
+  <li><a href="#preparing-destination-attribute" id="toc-preparing-destination-attribute" class="nav-link" data-scroll-target="#preparing-destination-attribute">Preparing Destination Attribute</a></li>
+  </ul></li>
+  <li><a href="#calibrating-spatial-interaction-models" id="toc-calibrating-spatial-interaction-models" class="nav-link" data-scroll-target="#calibrating-spatial-interaction-models">Calibrating Spatial Interaction Models</a>
+  <ul class="collapse">
+  <li><a href="#importing-the-modelling-data" id="toc-importing-the-modelling-data" class="nav-link" data-scroll-target="#importing-the-modelling-data">Importing the Modelling Data</a></li>
+  <li><a href="#visualizing-the-dependent-variable" id="toc-visualizing-the-dependent-variable" class="nav-link" data-scroll-target="#visualizing-the-dependent-variable">Visualizing the Dependent Variable</a></li>
+  <li><a href="#checking-for-variables-with-zero-values" id="toc-checking-for-variables-with-zero-values" class="nav-link" data-scroll-target="#checking-for-variables-with-zero-values">Checking for Variables with Zero Values</a></li>
+  <li><a href="#unconstrained-spatial-interaction-model" id="toc-unconstrained-spatial-interaction-model" class="nav-link" data-scroll-target="#unconstrained-spatial-interaction-model">Unconstrained Spatial Interaction Model</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -338,30 +355,267 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">orig =</span> Var1,</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>         <span class="at">dest =</span> Var2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-</section>
-</section>
-<section id="importing-aspatial-data" class="level2">
-<h2 class="anchored" data-anchor-id="importing-aspatial-data">Importing Aspatial Data</h2>
+<p>We can save distPair as an rds file for future use.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>pop <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">'data/aspatial/pop.csv'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>pop <span class="ot">&lt;-</span> pop <span class="sc">%&gt;%</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(mpsz,</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>            <span class="at">by =</span> <span class="fu">c</span>(<span class="st">'PA'</span> <span class="ot">=</span> <span class="st">'PLN_AREA_N'</span>,</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>                   <span class="st">'SZ'</span> <span class="ot">=</span> <span class="st">'SUBZONE_N'</span>)) <span class="sc">%&gt;%</span></span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">SZ_NAME =</span> SZ,</span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>         <span class="at">SZ =</span> SUBZONE_C)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write_rds</span>(distPair, <span class="st">'data/rds/distPair.rds'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="importing-origin-attribute" class="level2">
-<h2 class="anchored" data-anchor-id="importing-origin-attribute">Importing Origin Attribute</h2>
+</section>
+<section id="preparing-flow-data" class="level2">
+<h2 class="anchored" data-anchor-id="preparing-flow-data">Preparing flow data</h2>
+<p>We can import <em>od_data.rds</em> created previously into R using <em>read_rds().</em></p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>SIM_data <span class="ot">&lt;-</span> <span class="fu">read_rds</span>(<span class="st">'data/rds/SIM_data.rds'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>od_data <span class="ot">&lt;-</span> <span class="fu">read_rds</span>(<span class="st">'data/rds/od_data.rds'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Next, the total passenger trip between and within planning subzones will be calculated.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>flow_data <span class="ot">&lt;-</span> od_data <span class="sc">%&gt;%</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(ORIGIN_SZ, DESTIN_SZ) <span class="sc">%&gt;%</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">TRIPS =</span> <span class="fu">sum</span>(MORNING_PEAK))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We can see the top 5 rows of flow_data using <em>head()</em></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(flow_data)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 3
+# Groups:   ORIGIN_SZ [1]
+  ORIGIN_SZ DESTIN_SZ TRIPS
+  &lt;chr&gt;     &lt;chr&gt;     &lt;dbl&gt;
+1 AMSZ01    AMSZ01     2694
+2 AMSZ01    AMSZ02    10591
+3 AMSZ01    AMSZ03    14980
+4 AMSZ01    AMSZ04     3106
+5 AMSZ01    AMSZ05     7734
+6 AMSZ01    AMSZ06     2306</code></pre>
+</div>
+</div>
+<section id="separating-intra-flow-from-passenger-volume-df" class="level3">
+<h3 class="anchored" data-anchor-id="separating-intra-flow-from-passenger-volume-df">Separating intra-flow from passenger volume df</h3>
+<p>We can add three new fields into flow_data:</p>
+<ol type="1">
+<li>FlowNoIntra: Number of trips, excluding intra-zonal trips.</li>
+<li>offset: A neglible value used for later analysis to offset intra-zonal trips.</li>
+</ol>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>flow_data<span class="sc">$</span>FlowNoIntra <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(flow_data<span class="sc">$</span>ORIGIN_SZ <span class="sc">==</span> flow_data<span class="sc">$</span>DESTIN_SZ, <span class="dv">0</span>, flow_data<span class="sc">$</span>TRIPS)</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>flow_data<span class="sc">$</span>offset <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(flow_data<span class="sc">$</span>ORIGIN_SZ <span class="sc">==</span> flow_data<span class="sc">$</span>DESTIN_SZ, <span class="fl">0.000001</span>, <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="combining-passenger-volume-data-with-distance-value" class="level3">
+<h3 class="anchored" data-anchor-id="combining-passenger-volume-data-with-distance-value">Combining passenger volume data with distance value</h3>
+<p>Now that we have the distance between the subzones (distPair) and the number of trips between them (flow_data), we can try to combine them into one data frame.</p>
+<p>Before we can join <em>flow_data</em> and <em>distPair,</em> we need to convert data value type of ORIGIN_SZ and DESTIN_SZ of flow_data into factor type.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>flow_data<span class="sc">$</span>ORIGIN_SZ <span class="ot">&lt;-</span> <span class="fu">as.factor</span>(flow_data<span class="sc">$</span>ORIGIN_SZ)</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>flow_data<span class="sc">$</span>DESTIN_SZ <span class="ot">&lt;-</span> <span class="fu">as.factor</span>(flow_data<span class="sc">$</span>DESTIN_SZ)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p><em>left_join()</em> can be used to combine <em>flow_data</em> and <em>distPair</em></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>flow_data1 <span class="ot">&lt;-</span> flow_data <span class="sc">%&gt;%</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(distPair,</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>            <span class="at">by =</span> <span class="fu">c</span>(<span class="st">'ORIGIN_SZ'</span> <span class="ot">=</span> <span class="st">'orig'</span>,</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>                   <span class="st">'DESTIN_SZ'</span> <span class="ot">=</span> <span class="st">'dest'</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="preparing-origin-and-destination-attributes" class="level2">
+<h2 class="anchored" data-anchor-id="preparing-origin-and-destination-attributes">Preparing Origin and Destination Attributes</h2>
+<section id="importing-population-data" class="level3">
+<h3 class="anchored" data-anchor-id="importing-population-data">Importing Population Data</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>pop <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">'data/aspatial/pop.csv'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="geospatial-data-wrangling" class="level3">
+<h3 class="anchored" data-anchor-id="geospatial-data-wrangling">Geospatial Data Wrangling</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>pop <span class="ot">&lt;-</span> pop <span class="sc">%&gt;%</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(mpsz,</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>            <span class="at">by =</span> <span class="fu">c</span>(<span class="st">'PA'</span> <span class="ot">=</span> <span class="st">'PLN_AREA_N'</span>,</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>                   <span class="st">'SZ'</span> <span class="ot">=</span> <span class="st">'SUBZONE_N'</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">SZ_NAME =</span> SZ,</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>         <span class="at">SZ =</span> SUBZONE_C)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="preparing-origin-attribute" class="level3">
+<h3 class="anchored" data-anchor-id="preparing-origin-attribute">Preparing Origin Attribute</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>flow_data1 <span class="ot">&lt;-</span> flow_data1 <span class="sc">%&gt;%</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(pop,</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>            <span class="at">by =</span> <span class="fu">c</span>(<span class="at">ORIGIN_SZ =</span> <span class="st">'SZ'</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">ORIGIN_AGE7_12 =</span> AGE7_12,</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>         <span class="at">ORIGIN_AGE13_24 =</span> AGE13_24,</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>         <span class="at">ORIGIN_AGE25_64 =</span> AGE25_64) <span class="sc">%&gt;%</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(PA, SZ_NAME))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="preparing-destination-attribute" class="level3">
+<h3 class="anchored" data-anchor-id="preparing-destination-attribute">Preparing Destination Attribute</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>flow_data1 <span class="ot">&lt;-</span> flow_data1 <span class="sc">%&gt;%</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(pop,</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>            <span class="at">by =</span> <span class="fu">c</span>(<span class="at">DESTIN_SZ =</span> <span class="st">'SZ'</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">DESTIN_AGE7_12 =</span> AGE7_12,</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>         <span class="at">DESTIN_AGE13_24 =</span> AGE13_24,</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>         <span class="at">DESTIN_AGE25_64 =</span> AGE25_64) <span class="sc">%&gt;%</span></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(PA, SZ_NAME))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="calibrating-spatial-interaction-models" class="level2">
+<h2 class="anchored" data-anchor-id="calibrating-spatial-interaction-models">Calibrating Spatial Interaction Models</h2>
+<p>We will use the Poisson Regression Method to calibrate Spatial Interaction Models</p>
+<section id="importing-the-modelling-data" class="level3">
+<h3 class="anchored" data-anchor-id="importing-the-modelling-data">Importing the Modelling Data</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>SIM_data <span class="ot">&lt;-</span> <span class="fu">read_rds</span>(<span class="st">'data/rds/SIM_data.rds'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="visualizing-the-dependent-variable" class="level3">
+<h3 class="anchored" data-anchor-id="visualizing-the-dependent-variable">Visualizing the Dependent Variable</h3>
+<p>Let’s plot the distribution of the dependent variable (i.e.&nbsp;TRIPS) by making a histogram with <strong>ggplot2</strong>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(SIM_data,</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>       <span class="fu">aes</span>(<span class="at">x=</span>TRIPS))<span class="sc">+</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="In-Class_Ex3_files/figure-html/unnamed-chunk-23-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>The distribution is highly skewed and does not resemble a bell shape, also known as the normal distribution.</p>
+<p>Now, we can visualize the relation between the dependent variable and one of the key independent variable (distance between zones) in the Spatial Interaction Mode.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(SIM_data,</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>       <span class="fu">aes</span>(<span class="at">x =</span> dist,</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>           <span class="at">y =</span> TRIPS))<span class="sc">+</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>()<span class="sc">+</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method=</span>lm)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="In-Class_Ex3_files/figure-html/unnamed-chunk-24-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>The relationship does not resemble a linear relationship.</p>
+<p>However, if we create a scatter plot using the log transformed version of these variables, the relationship will better resemble a linear relationship.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(SIM_data,</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>       <span class="fu">aes</span>(<span class="at">x =</span> <span class="fu">log</span>(dist),</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>           <span class="at">y =</span> <span class="fu">log</span>(TRIPS)))<span class="sc">+</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>()<span class="sc">+</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> lm)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="In-Class_Ex3_files/figure-html/unnamed-chunk-25-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+<section id="checking-for-variables-with-zero-values" class="level3">
+<h3 class="anchored" data-anchor-id="checking-for-variables-with-zero-values">Checking for Variables with Zero Values</h3>
+<p>Since Poisson Regression is based of log and log 0 is undefined, it is important for us to ensure that there is no 0 in the explanatory variables.</p>
+<p><em>summary()</em> can be used to compute the summary statistics of all variables in the data frame.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(SIM_data)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  ORIGIN_SZ          DESTIN_SZ             TRIPS           FlowNoIntra      
+ Length:14274       Length:14274       Min.   :     1.0   Min.   :     1.0  
+ Class :character   Class :character   1st Qu.:    11.0   1st Qu.:    11.0  
+ Mode  :character   Mode  :character   Median :    56.0   Median :    56.0  
+                                       Mean   :   664.3   Mean   :   664.3  
+                                       3rd Qu.:   296.0   3rd Qu.:   296.0  
+                                       Max.   :104167.0   Max.   :104167.0  
+     offset       dist         ORIGIN_AGE7_12 ORIGIN_AGE13_24 ORIGIN_AGE25_64
+ Min.   :1   Min.   :  173.8   Min.   :   0   Min.   :    0   Min.   :    0  
+ 1st Qu.:1   1st Qu.: 3465.4   1st Qu.: 240   1st Qu.:  460   1st Qu.: 2210  
+ Median :1   Median : 6121.0   Median : 710   Median : 1400   Median : 7030  
+ Mean   :1   Mean   : 6951.8   Mean   :1037   Mean   : 2278   Mean   :10536  
+ 3rd Qu.:1   3rd Qu.: 9725.1   3rd Qu.:1500   3rd Qu.: 3282   3rd Qu.:15830  
+ Max.   :1   Max.   :26135.8   Max.   :6340   Max.   :16380   Max.   :74610  
+ DESTIN_AGE7_12 DESTIN_AGE13_24 DESTIN_AGE25_64
+ Min.   :   0   Min.   :    0   Min.   :    0  
+ 1st Qu.: 250   1st Qu.:  460   1st Qu.: 2210  
+ Median : 720   Median : 1430   Median : 7120  
+ Mean   :1040   Mean   : 2305   Mean   :10648  
+ 3rd Qu.:1500   3rd Qu.: 3290   3rd Qu.:15830  
+ Max.   :6340   Max.   :16380   Max.   :74610  </code></pre>
+</div>
+</div>
+<p>The print report above reveals that variables ORIGIN_AGE7_12, ORIGIN_AGE13_24, ORIGIN_AGE25_64,DESTIN_AGE7_12, DESTIN_AGE13_24, DESTIN_AGE25_64 consist of 0 values.</p>
+<p>We can use <em>ifelse()</em> functions to replace 0 values to 0.99 so that the log function would not result in minus infinity (for 0) or 0 (for 1).</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>SIM_data<span class="sc">$</span>ORIGIN_AGE7_12 <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(SIM_data<span class="sc">$</span>ORIGIN_AGE7_12 <span class="sc">==</span> <span class="dv">0</span>, <span class="fl">0.99</span>, SIM_data<span class="sc">$</span>ORIGIN_AGE7_12)</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>SIM_data<span class="sc">$</span>ORIGIN_AGE13_24 <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(SIM_data<span class="sc">$</span>ORIGIN_AGE13_24 <span class="sc">==</span> <span class="dv">0</span>, <span class="fl">0.99</span>, SIM_data<span class="sc">$</span>ORIGIN_AGE13_24)</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>SIM_data<span class="sc">$</span>ORIGIN_AGE25_64 <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(SIM_data<span class="sc">$</span>ORIGIN_AGE25_64 <span class="sc">==</span> <span class="dv">0</span>, <span class="fl">0.99</span>, SIM_data<span class="sc">$</span>ORIGIN_AGE25_64)</span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>SIM_data<span class="sc">$</span>DESTIN_AGE7_12 <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(SIM_data<span class="sc">$</span>DESTIN_AGE7_12 <span class="sc">==</span> <span class="dv">0</span>, <span class="fl">0.99</span>, SIM_data<span class="sc">$</span>DESTIN_AGE7_12)</span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>SIM_data<span class="sc">$</span>DESTIN_AGE13_24 <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(SIM_data<span class="sc">$</span>DESTIN_AGE13_24 <span class="sc">==</span> <span class="dv">0</span>, <span class="fl">0.99</span>, SIM_data<span class="sc">$</span>DESTIN_AGE13_24)</span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a>SIM_data<span class="sc">$</span>DESTIN_AGE25_64 <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(SIM_data<span class="sc">$</span>DESTIN_AGE25_64 <span class="sc">==</span> <span class="dv">0</span>, <span class="fl">0.99</span>, SIM_data<span class="sc">$</span>DESTIN_AGE25_64)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Let’s check the <em>summary()</em> again.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(SIM_data)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  ORIGIN_SZ          DESTIN_SZ             TRIPS           FlowNoIntra      
+ Length:14274       Length:14274       Min.   :     1.0   Min.   :     1.0  
+ Class :character   Class :character   1st Qu.:    11.0   1st Qu.:    11.0  
+ Mode  :character   Mode  :character   Median :    56.0   Median :    56.0  
+                                       Mean   :   664.3   Mean   :   664.3  
+                                       3rd Qu.:   296.0   3rd Qu.:   296.0  
+                                       Max.   :104167.0   Max.   :104167.0  
+     offset       dist         ORIGIN_AGE7_12    ORIGIN_AGE13_24   
+ Min.   :1   Min.   :  173.8   Min.   :   0.99   Min.   :    0.99  
+ 1st Qu.:1   1st Qu.: 3465.4   1st Qu.: 240.00   1st Qu.:  460.00  
+ Median :1   Median : 6121.0   Median : 710.00   Median : 1400.00  
+ Mean   :1   Mean   : 6951.8   Mean   :1036.73   Mean   : 2278.59  
+ 3rd Qu.:1   3rd Qu.: 9725.1   3rd Qu.:1500.00   3rd Qu.: 3282.50  
+ Max.   :1   Max.   :26135.8   Max.   :6340.00   Max.   :16380.00  
+ ORIGIN_AGE25_64    DESTIN_AGE7_12    DESTIN_AGE13_24    DESTIN_AGE25_64   
+ Min.   :    0.99   Min.   :   0.99   Min.   :    0.99   Min.   :    0.99  
+ 1st Qu.: 2210.00   1st Qu.: 250.00   1st Qu.:  460.00   1st Qu.: 2210.00  
+ Median : 7030.00   Median : 720.00   Median : 1430.00   Median : 7120.00  
+ Mean   :10535.93   Mean   :1039.98   Mean   : 2305.33   Mean   :10647.95  
+ 3rd Qu.:15830.00   3rd Qu.:1500.00   3rd Qu.: 3290.00   3rd Qu.:15830.00  
+ Max.   :74610.00   Max.   :6340.00   Max.   :16380.00   Max.   :74610.00  </code></pre>
+</div>
+</div>
+<p>All 0 values have been replaced by 0.99</p>
+</section>
+<section id="unconstrained-spatial-interaction-model" class="level3">
+<h3 class="anchored" data-anchor-id="unconstrained-spatial-interaction-model">Unconstrained Spatial Interaction Model</h3>
+<p><em>glm()</em> can be used to calibrate an unconstrained spatial interaction model. Our explanatory variables are origin population by different age cohort, destination population by age cohort and distance between origin and destination in km (i.e.&nbsp;<em>dist).</em></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>uncSIM <span class="ot">&lt;-</span> <span class="fu">glm</span>(<span class="at">formula =</span> TRIPS <span class="sc">~</span> </span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>                <span class="fu">log</span>(ORIGIN_AGE25_64)<span class="sc">+</span></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>                <span class="fu">log</span>(DESTIN_AGE25_64)<span class="sc">+</span></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>                <span class="fu">log</span>(dist),</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>              <span class="at">family =</span> <span class="fu">poisson</span>(<span class="at">link =</span> <span class="st">'log'</span>),</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>              <span class="at">data =</span> SIM_data,</span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>              <span class="at">na.action =</span> na.exclude)</span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>uncSIM</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:  glm(formula = TRIPS ~ log(ORIGIN_AGE25_64) + log(DESTIN_AGE25_64) + 
+    log(dist), family = poisson(link = "log"), data = SIM_data, 
+    na.action = na.exclude)
+
+Coefficients:
+         (Intercept)  log(ORIGIN_AGE25_64)  log(DESTIN_AGE25_64)  
+            17.00287               0.21001               0.01289  
+           log(dist)  
+            -1.51785  
+
+Degrees of Freedom: 14273 Total (i.e. Null);  14270 Residual
+Null Deviance:      36120000 
+Residual Deviance: 19960000     AIC: 20040000</code></pre>
+</div>
 </div>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->

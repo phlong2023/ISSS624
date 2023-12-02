@@ -78,6 +78,25 @@ The data type for each column can be seen as well as some of their values. For s
 glimpse(busstop)
 ```
 
+Additionally, busstop can be visualized in order to spot any anomaly. This can be done using the *qtm()* function in the **tmap** package for quick plotting.
+
+```{r}
+qtm(busstop)
+```
+
+The visualization shows us that there are four bus stops in Malaysia. Let's remove them so that only bus stops in Singapore will be considered. This is because these special bus stops might exhibit different behaviors due to their different context from the rest of the bus stops in Singapore.
+
+*filter()* can be used in conjunction with a dplyr step to remove these bus stops.
+
+```{r}
+busstop <- busstop %>%
+  filter(!BUS_STOP_N %in% c('46609','47701', '46211', '46219', '46239'))
+```
+
+::: callout-note
+*qtm()* can be used again to check that the bus stops have been removed.
+:::
+
 ### Importing Aspatial Data
 
 The *read_csv()* function of readr can be used to import the origin_destination_bus_202309 CSV file into the R environment as a data frame.
@@ -280,7 +299,7 @@ bushexmap
 Search for the bus stop near your place and compare the numbers between the four maps by zooming in! Do you think it's accurate?
 :::
 
-By looking at the illustration, we can see that each cell might contain up to four bus stops. A bar chat can be drawn with the **ggplot2** package to visualize the distribution of number of bus stop in each cell.
+By looking at the illustration, we can see that each cell might contain up to ten bus stops. A bar chat can be drawn with the **ggplot2** package to visualize the distribution of number of bus stop in each cell.
 
 ```{r}
 ggplot(honeycomb_count, aes(x=n_busstop))+
@@ -289,7 +308,7 @@ ggplot(honeycomb_count, aes(x=n_busstop))+
   geom_text(aes(label = ..count..), stat = "count", vjust = -0.5, colour = "black")
 ```
 
-As can be seen, the majority of cells contain 1-2 bus stop with only 250 cells containing more than 3 bus stops. This shows that the cells adequately capture solitary bus stop, as well as pairs of bus stops (bus stops which are opposite each other, served by the same bus services).
+As can be seen, the majority of cells contain 1-2 bus stop with only 214 cells containing more than 6 bus stops. This shows that the cells adequately capture solitary bus stop, as well as pairs of bus stops (bus stops which are opposite each other, served by the same bus services).
 
 ### Combining Aspatial and Geospatial Data
 
@@ -408,6 +427,10 @@ gridExtra::grid.arrange(weekday_morning_hist, weekday_evening_hist, weekend_noon
                         nrow = 2, ncol = 2)
 ```
 
+Upon a brief inspection, it is possible to see that the range of trips between the different time periods are very different from each other, with Weekday Evening trips going above 300,000 for some hexagons, while Weekend Noon only ranging around 80,000 for its hexagons. By plotting this on map, we will get to see the geospatial distribution of the number of trips for each time frame.
+
+Before we map all four time frames, however, it is important to consider that the 'style' argument of *tm_fill()* can take on many values (pretty, quantile, equal, etc.). In order to pick an appropriate 'style', we can pick one time frame and plot it using three different styles to determine the best way to depict the distribution.
+
 ```{r}
 tmap_mode('view')
 
@@ -433,12 +456,12 @@ weekday_morning_quantile <- tm_shape(hex_passenger_wd_69) +
   tm_basemap(server = c('Esri.WorldGrayCanvas'))+
   tm_layout(title = 'Weekday Morning Peak (Quantile)', title.position = c('right', 'top'))
 
-# Pretty style
-weekday_morning_pretty <- tm_shape(hex_passenger_wd_69) +
+# Jenks style
+weekday_morning_jenks <- tm_shape(hex_passenger_wd_69) +
   tm_fill(
     col = "TOTAL_TRIP",
     palette = "Blues",
-    style = "pretty",
+    style = "jenks",
     title = "Number of Trips",
     id = "grid_id",
     showNA = FALSE,
@@ -452,7 +475,7 @@ weekday_morning_pretty <- tm_shape(hex_passenger_wd_69) +
   ) +
   tm_borders(col = "grey40", lwd = 0.7)+
   tm_basemap(server = c('Esri.WorldGrayCanvas'))+
-  tm_layout(title = 'Weekday Morning Peak (Jenk)', title.position = c('right', 'top'))
+  tm_layout(title = 'Weekday Morning Peak (Jenks)', title.position = c('right', 'top'))
 
 # Equal style
 weekday_morning_equal <- tm_shape(hex_passenger_wd_69) +
@@ -475,18 +498,20 @@ weekday_morning_equal <- tm_shape(hex_passenger_wd_69) +
   tm_basemap(server = c('Esri.WorldGrayCanvas'))+
   tm_layout(title = 'Weekday Morning Peak (Equal)', title.position = c('right', 'top'))
 
-tmap_arrange(weekday_morning_quantile, weekday_morning_pretty, weekday_morning_equal, asp = 1, ncol = 3)
+tmap_arrange(weekday_morning_quantile, weekday_morning_jenks, weekday_morning_equal, asp = 1, ncol = 3)
 ```
 
-As can be seen, only the 'quantile' style can display the difference in distribution of trips between the different hexagons. This can be attributed to the fact that the range of trips between the hexagons are too large. Therefore, it is possible to move forward using the 'quantile' style for visualization.
+As can be seen, the 'quantile' and 'jenks' style can better display the difference in distribution of trips between the different hexagons. This can be attributed to the fact that the range of trips between the hexagons are too large. However, the 'quantile' function suffers from its final grouping, containing values from roughly 5,539 to 136,490; this resulted int the oversaturation of the high value hexagons. On the other hand, the 'jenks' method "divides the features into classes whose boundaries are where there are relatively big differences in the data values" ([Reference](https://pro.arcgis.com/en/pro-app/latest/help/mapping/layer-properties/data-classification-methods.htm)). Therefore, it is possible to move forward using the 'jenks' style for visualization, but by adjusting the breaks to provide more stratification in the hexagon colors for better visualization..
 
 ::: warning
 It is good to remove the 3 plots created to plot the different styles since they will not be used and will only take up memory.
 
 ```{r}
-rm(list=c('weekday_morning_equal','weekday_morning_quantile','weekday_morning_pretty'))
+rm(list=c('weekday_morning_equal','weekday_morning_quantile','weekday_morning_jenks'))
 ```
 :::
+
+The functions of the **tmap** package will be used to create the maps.
 
 ```{r}
 tmap_mode('view')
@@ -496,7 +521,7 @@ weekday_morning <- tm_shape(hex_passenger_wd_69) +
   tm_fill(
     col = "TOTAL_TRIP",
     palette = "Blues",
-    style = "quantile",
+    style = "jenks",
     title = "Number of Trips",
     id = "grid_id",
     showNA = FALSE,
@@ -518,7 +543,7 @@ weekday_afternoon <- tm_shape(hex_passenger_wd_1720) +
   tm_fill(
     col = "TOTAL_TRIP",
     palette = "Blues",
-    style = "quantile",
+    style = "jenks",
     title = "Number of Trips",
     id = "grid_id",
     showNA = FALSE,
@@ -539,7 +564,7 @@ weekend_noon <- tm_shape(hex_passenger_weh_1114) +
   tm_fill(
     col = "TOTAL_TRIP",
     palette = "Blues",
-    style = "quantile",
+    style = "jenks",
     title = "Number of Trips",
     id = "grid_id",
     showNA = FALSE,
@@ -560,7 +585,7 @@ weekend_evening <- tm_shape(hex_passenger_weh_1619) +
   tm_fill(
     col = "TOTAL_TRIP",
     palette = "Blues",
-    style = "quantile",
+    style = "jenks",
     title = "Number of Trips",
     id = "grid_id",
     showNA = FALSE,
@@ -583,7 +608,9 @@ tmap_arrange(weekday_morning, weekday_afternoon, weekend_noon, weekend_evening, 
 Search for the bus stop near your place and compare the numbers between the four maps by zooming in! Do you think it's accurate?
 :::
 
-From the rough visualization, it's clear that not all bus stops experience a similar level of traffic throughout different timing of the days. Additionally, based on the quantiles created by **tmap,** it seems that the ranges of passenger traffic are radically different between the four time windows. For example, certain grids during Weekday Morning Peak, a hexagon could reach 328,545 passenger trips, whereas the highest number during Weekend/holiday Morning Peak only reaches 112,330.
+From the rough visualization, it's clear that not all bus stops experience a similar level of traffic throughout different timing of the days. Additionally, based on the quantiles created by **tmap,** it seems that the ranges of passenger traffic are radically different between the four time windows. For example, certain grids during Weekday Morning Peak, a hexagon could reach 328,545 passenger trips, whereas the highest number during Weekend/holiday Morning Peak only reaches 112,330. It appears that Weekend Evening Peak 17:00 - 20:00 is the period with the highest level of activity.
+
+An important observation seems to be that there darker shaded hexagons tend to be clustered, indicating a positive spatial autocorrelation. However, there are clearly hexagons which are much darker than its surrounding tiles (such as the one near Tampines), indicating negative spatial autocorrelation. By conducting LISA analysis, it will be possible to determine the level of spatial autocorrelation for each hexagon, visualize them, as well as to depict the relationship between a hexagon and its neighbors through a LISA cluster map.
 
 ## Local Indicators of Spatial Autocorrelation (LISA)
 
@@ -610,7 +637,7 @@ wm_q <- st_contiguity(st_geometry(hex_passenger_wd_1720))
 summary(wm_q)
 ```
 
-As can be seen from the weight matrix, 10 hexagon cells have 0 neighbor. **Therefore, a Distance-based Method would be suitable for analysis. Both Fixed Distance and Adaptive Distance methods will be utilized for more comprehensive comparison.**
+As can be seen from the weight matrix, 10 hexagon cells have 0 neighbor. **Therefore, a Distance-based Method would be suitable for analysis. Both Fixed Distance and Adaptive Distance Weight Matrix can be created for comparison to find the most appropriate method.**
 
 ### Fixed Distance Weight Matrix
 
@@ -618,7 +645,7 @@ As can be seen from the weight matrix, 10 hexagon cells have 0 neighbor. **There
 
 *st_dist_band()* of **sfdep** is incredibly powerful in that it can create a neighbor list based on distance between the centroid of polygons and a lower and upper bound distance to other centroid. The default arguments for *st_dist_band()* will find neighbors with a lower and upper bound so that each hexagon will have at least one neighbor. This is the equivalent of the steps in **spdep** of the function *knearneigh()* of k=1.
 
-*st_inverse_distance()* of a **sfdep** can be combined with *st_dist_band()* in a **dplyr** step to create a new column in each data frame of the different time frames to create a neighbor list and a inverse distance weight list.
+*st_inverse_distance()* of a **sfdep** can be combined with *st_dist_band()* in a **dplyr** step to create a new column in each data frame of the different time frames to create a neighbor list and a inverse distance weight list. Additionally, *st_lag()* can be used to create a spatially lagged value column for total trips based on the weight of neighbors.
 
 ```{r}
 # Weekday morning peak 6am - 9am
@@ -649,6 +676,15 @@ weh1619_nb <- hex_passenger_weh_1619 %>%
          lag_trip = st_lag(TOTAL_TRIP,nb,wt),
          .before = 1) # to put them in the front
 ```
+
+Since the hexagon tiles is stable across all time frame, it is possible to plot the neighbor relationship for only one time frame in order to visualize the neighbors list created. Let's take Weekday morning peak 6am - 9am. By visualizing, the appropriateness of the Fixed Distance Method can be roughly determined.
+
+```{r}
+plot(wd69_nb$area_honeycomb_grid, border = 'lightgrey')
+plot(st_knn(wd69_nb$area_honeycomb_grid, k = 1), st_centroid(wd69_nb$area_honeycomb_grid), add=TRUE, col = 'red', length = 0.08)
+```
+
+Between the Fixed Distance and Adaptive Distance Matrix, an Adaptive Distance Matrix would be more appropriate to the non-uniform nature of bus stop spatial distribution across the map. Using Adaptive Distance would allow for the specification of the number of neighbors, allowing for the standardisation of the LISA analysis process across hexagons.
 
 #### Calculating LISA
 
