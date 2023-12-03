@@ -811,8 +811,6 @@ A host of statistics related to the Local Moran's I have been added to the data 
 
 In order to effectively visualize the Local Moran's I statistics for each time frame, it is preferable to plot the Local Moran's I values and p-values together. At this point, creating the visualization for each time frame separately instead of all together will allow for easier analysis.
 
-Before mapping the Local Moran's I values however, it is imperative that the hypothesis
-
 ::: callout-note
 As we would like to only display p-values which indicate statistical significance, we will use a filter and create a custom color palette to indicate that any p-value above 0.05 will not be displayed.
 :::
@@ -834,7 +832,7 @@ Several functions are added to make the map interactive and aesthetically pleasi
 #| code-fold: true
 #| code-summary: "Show the code"
 
-p_value_color = c('#ffffff', '#bdd7e7','#6baed6', '#2171b5')
+p_value_color = c('#bdd7e7','#6baed6', '#2171b5')
 
 tmap_mode('view')
 
@@ -871,7 +869,7 @@ wd69.pvalue <- wd69_lisa %>%
   filter(p_ii < 0.05) %>%
   tm_shape()+
   tm_fill('p_ii',
-          breaks = c(-Inf, 0.001, 0.01, 0.05, Inf),
+          breaks = c(-Inf, 0.001, 0.01, 0.05),
           palette = rev(p_value_color),
           title = "Local Moran's I p-values",
           id = 'grid_id',
@@ -927,7 +925,7 @@ wd1720.pvalue <- wd1720_lisa %>%
   filter(p_ii < 0.05) %>%
   tm_shape()+
   tm_fill('p_ii',
-          breaks = c(-Inf, 0.001, 0.01, 0.05, Inf),
+          breaks = c(-Inf, 0.001, 0.01, 0.05),
           palette = rev(p_value_color),
           title = "Local Moran's I p-values",
           id = 'grid_id',
@@ -983,7 +981,7 @@ weh1114.pvalue <- weh1114_lisa %>%
   filter(p_ii < 0.05) %>%
   tm_shape()+
   tm_fill('p_ii',
-          breaks = c(-Inf, 0.001, 0.01, 0.05, Inf),
+          breaks = c(-Inf, 0.001, 0.01, 0.05),
           palette = rev(p_value_color),
           title = "Local Moran's I p-values",
           id = 'grid_id',
@@ -1039,7 +1037,7 @@ weh1619.pvalue <- weh1619_lisa %>%
   filter(p_ii < 0.05) %>%
   tm_shape()+
   tm_fill('p_ii',
-          breaks = c(-Inf, 0.001, 0.01, 0.05, Inf),
+          breaks = c(-Inf, 0.001, 0.01, 0.05),
           palette = rev(p_value_color),
           title = "Local Moran's I p-values",
           id = 'grid_id',
