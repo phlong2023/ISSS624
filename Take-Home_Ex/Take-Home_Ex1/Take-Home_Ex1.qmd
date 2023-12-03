@@ -828,7 +828,6 @@ Several functions are added to make the map interactive and aesthetically pleasi
 **Weekday Morning Peak 6am - 9am**
 
 ```{r}
-
 #| code-fold: true
 #| code-summary: "Show the code"
 
