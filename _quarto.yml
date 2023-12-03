@@ -32,7 +32,7 @@ website:
           
       - text: Take-Home Exercise
         menu: 
-          - text: (INPROGRESS) Take-Home Exercise 1
+          - text: Take-Home Exercise 1
             href: Take-Home_Ex/Take-Home_Ex1/Take-Home_Ex1.html
     right:
       - href: index.html
@@ -48,3 +48,5 @@ format:
 
 editor: visual
 
+execute: 
+  freeze: auto

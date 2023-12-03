@@ -33,8 +33,10 @@ First, the necessary R packages will be loaded using the *p_load()* function of 
 
 -   [**tmap**](https://cran.r-project.org/web/packages/tmap/vignettes/tmap-getstarted.html)**:** For thematic mapping, especially the mapping of simple features data frame.
 
+-   [**spdep**](https://github.com/r-spatial/spdep): For drawing Moran scatterplot.
+
 ```{r}
-pacman::p_load(sf,sfdep,tidyverse,tmap)
+pacman::p_load(sf,sfdep,tidyverse,tmap, spdep)
 ```
 
 ## Importing Required Data
@@ -612,7 +614,7 @@ weekend_evening <- tm_shape(hex_passenger_weh_1619) +
   tm_basemap(server = c('Esri.WorldGrayCanvas'))+
   tm_layout(title = 'Weekend/holiday Evening Peak', title.position = c('right', 'top'))
 
-tmap_arrange(weekday_morning, weekday_afternoon, weekend_noon, weekend_evening, nrow = 2, ncol = 2)
+tmap_arrange(weekday_morning, weekday_afternoon, weekend_noon, weekend_evening, nrow = 2, ncol = 2, sync = TRUE)
 ```
 
 ::: callout-note
@@ -719,6 +721,8 @@ wd69_nb <- hex_passenger_wd_69 %>%
          .before = 1) # to put them in the front
 
 # Weekday afternoon peak 5pm - 8pm (17:00 - 20:00)
+
+
 wd1720_nb <- hex_passenger_wd_1720 %>%
   mutate(nb = st_knn(area_honeycomb_grid, k = 6),
          wt = st_inverse_distance(nb, area_honeycomb_grid),
@@ -750,11 +754,25 @@ It can be seen that all hexagon cells now have 6 neighbors. The LISA calculation
 
 ## Local Indicators of Spatial Autocorrelation (LISA)
 
-The statistical test used for LISA in this study will be the Local Moran's I.
+The statistical test used for LISA in this study will be the Local Moran's I. The hypothesis for the Local Moran's I will be as follow for each time frame:
+
+-   Null Hypothesis (H0): No Spatial Autocorrelation
+
+-   Alternative Hypothesis (H1): There is Spatial Autocorrelation, Positive or Negative
+
+The result of the test can be determined using the z-score or p-value, we will be using the p-value.
 
 ### Calculating Local Moran's I
 
 *local_moran()* of the **sfdep** package can be used to calculate Local Moran's I Statistic and other related statistics. the *unnest()* function is used to unpack the Local Moran's statistics into separate columns.
+
+Note some important arguments when using the *local_moran()* function.
+
+::: callout-note
+-   nsim: The number of simulations to run. The simulations will create random patterns on the map by reassigning the values and calculate the p-value as the proportions of values as extreme or more extreme than the actual observed values.
+
+-   alternative = 'two.sided': The default test for *local_moran()* is a two-sided tests, which is aligned with the H1. 'greater' or 'less' can be passed to alternative to conduct other types of tests.
+:::
 
 ```{r}
 # Weekday morning peak 6am - 9am
@@ -791,10 +809,12 @@ A host of statistics related to the Local Moran's I have been added to the data 
 
 #### Mapping Local Moran's I Values and p-values
 
-In order to effectively visualize the Local Moran's I statistics for each time frame, it is preferable to plot the Local Moran's I values and p-values side by side. At this point, creating the visualization for each time frame separately instead of all together will allow for easier analysis.
+In order to effectively visualize the Local Moran's I statistics for each time frame, it is preferable to plot the Local Moran's I values and p-values together. At this point, creating the visualization for each time frame separately instead of all together will allow for easier analysis.
+
+Before mapping the Local Moran's I values however, it is imperative that the hypothesis
 
 ::: callout-note
-As we would like to only display p-values which indicate statistical significance, we will create a custom color palette to indicate that any p-value above 0.05 will be displayed as blank.
+As we would like to only display p-values which indicate statistical significance, we will use a filter and create a custom color palette to indicate that any p-value above 0.05 will not be displayed.
 :::
 
 ::: callout-note
@@ -807,9 +827,13 @@ Several functions are added to make the map interactive and aesthetically pleasi
 -   popup.format: Specifying the format of the variable to be displayed when selecting a cell.
 :::
 
-##### **Weekday morning peak 6am - 9am**
+**Weekday Morning Peak 6am - 9am**
 
 ```{r}
+
+#| code-fold: true
+#| code-summary: "Show the code"
+
 p_value_color = c('#ffffff', '#bdd7e7','#6baed6', '#2171b5')
 
 tmap_mode('view')
@@ -828,7 +852,9 @@ wd69.lag <- tm_shape(wd69_lisa)+
   tm_layout(main.title = "Weekend/holiday Morning Spatially Lagged Trips", main.title.position = "center")
 
 # Local Moran's I Statistics
-wd69.localmi <- tm_shape(wd69_lisa)+
+wd69.localmi <- wd69_lisa %>%
+  filter(p_ii < 0.05) %>%
+  tm_shape()+
   tm_fill('ii',
           style = "pretty", 
           title = "Local Moran's I Statistics",
@@ -841,7 +867,9 @@ wd69.localmi <- tm_shape(wd69_lisa)+
   tm_layout(main.title = "Weekday Morning Local Moran's I values", main.title.position = "center")
 
 # Local Moran's I p-values
-wd69.pvalue <- tm_shape(wd69_lisa)+
+wd69.pvalue <- wd69_lisa %>%
+  filter(p_ii < 0.05) %>%
+  tm_shape()+
   tm_fill('p_ii',
           breaks = c(-Inf, 0.001, 0.01, 0.05, Inf),
           palette = rev(p_value_color),
@@ -857,9 +885,13 @@ wd69.pvalue <- tm_shape(wd69_lisa)+
 tmap_arrange(wd69.lag, wd69.localmi, wd69.pvalue, nrow = 3, sync = TRUE)
 ```
 
-##### **Weekday afternoon peak 5pm - 8pm (17:00 - 20:00)**
+From the illustrations, it can be determined that there is spatial clustering in the number of trips, especially in the pattern of hexagons with high number of spatially lagged trips surrounding one with a fewer spatially lagged trips; this pattern is notable around the Jurong and Choa Chu Kang areas in the West and Tampines Area in the East. One can also note this pattern in the Ang Mo Kio and Yishun area in the North and those hexagons around the Woodlands causeway. This is reinforced when one looks at the p-values plot. The surrounding polygons with high spatially lagged trips often have a p-value of less than 0.001, which indicates statistically significant spatial autocorrelation. Their Local Moran's I Statistics are relatively close to zero, either in the positive or negative direction. They have a small, negative Local Moran's I, suggesting that they are surrounded by neighbours which are dissimilar to them, likely due to their high spatially lagged values. A possible interpretation of this result is that these are major population centres, also known as the [Heartlands](https://curiocity.nlb.gov.sg/story-maps/heartland/), where people in the surrounding areas are congregating due to them hosting major bus interchanges in the morning to get to places of employment or education.
+
+**Weekday Afternoon Peak 5pm - 8pm (17:00 - 20:00)**
 
 ```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
 tmap_mode('view')
 
 # Spatially Lagged Values
@@ -876,7 +908,9 @@ wd1720.lag <- tm_shape(wd1720_lisa)+
   tm_layout(main.title = "Weekend/holiday Morning Spatially Lagged Trips", main.title.position = "center")
 
 # Local Moran's I Statistics
-wd1720.localmi <- tm_shape(wd1720_lisa)+
+wd1720.localmi <- wd1720_lisa %>%
+  filter(p_ii < 0.05) %>%
+  tm_shape()+
   tm_fill('ii',
           style = "pretty", 
           title = "Local Moran's I Statistics",
@@ -889,7 +923,9 @@ wd1720.localmi <- tm_shape(wd1720_lisa)+
   tm_layout(main.title = "Weekday Afternoon Local Moran's I values", main.title.position = "center")
 
 # Local Moran's I p-values
-wd1720.pvalue <- tm_shape(wd1720_lisa)+
+wd1720.pvalue <- wd1720_lisa %>%
+  filter(p_ii < 0.05) %>%
+  tm_shape()+
   tm_fill('p_ii',
           breaks = c(-Inf, 0.001, 0.01, 0.05, Inf),
           palette = rev(p_value_color),
@@ -905,9 +941,13 @@ wd1720.pvalue <- tm_shape(wd1720_lisa)+
 tmap_arrange(wd1720.lag, wd1720.localmi, wd1720.pvalue, nrow = 3, sync = TRUE)
 ```
 
-##### Weekend/holiday morning peak 11am - 2pm (11:00 - 14:00)
+The Local Moran's I result for the Weekday afternoon peak 5pm - 8pm is similar to that of the weekday morning peak. A similar pattern of hexagons with high number of spatially lagged trips and statistically significant p-value surrounding those with fewer spatially lagged trips and non-significant p-value reappear here. Interestingly, one of these clusters in Jurong in the West and the two in Ang Mo Kio and Yishun in the North seem to have dissipated in this time window. However, the cluster in Tampines, Choa Chu Kang, and the Woodlands causeway remain. This reinforces the previous observation that these areas consist of major interchanges where the flows of people would congregate before dispersing again. Possibly, this is due to the flow of people returning home after work. This is reinforced by the emergence of individual cells near the Marina Reservoir, also known as part of the [Downtown Core](https://lkyspp.nus.edu.sg/docs/default-source/case-studies/marina-bay_case-study.pdf?sfvrsn=8634960b_2), and the office buildings near Harbourfront in the South. They have statistically significant p-value and relatively high spatially lagged trips, possibly indicating flow of people leaving their workplaces.
+
+**Weekend/holiday Morning Peak 11am - 2pm (11:00 - 14:00)**
 
 ```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
 tmap_mode('view')
 
 # Spatially Lagged Values
@@ -924,7 +964,9 @@ weh1114.lag <- tm_shape(weh1114_lisa)+
   tm_layout(main.title = "Weekend/holiday Morning Spatially Lagged Trips", main.title.position = "center")
 
 # Local Moran's I Statistics
-weh1114.localmi <- tm_shape(weh1114_lisa)+
+weh1114.localmi <- weh1114_lisa %>%
+  filter(p_ii < 0.05) %>%
+  tm_shape()+
   tm_fill('ii',
           style = "pretty", 
           title = "Local Moran's I Statistics",
@@ -937,7 +979,9 @@ weh1114.localmi <- tm_shape(weh1114_lisa)+
   tm_layout(main.title = "Weekend/holiday Morning Local Moran's I values", main.title.position = "center")
 
 # Local Moran's I p-values
-weh1114.pvalue <- tm_shape(weh1114_lisa)+
+weh1114.pvalue <- weh1114_lisa %>%
+  filter(p_ii < 0.05) %>%
+  tm_shape()+
   tm_fill('p_ii',
           breaks = c(-Inf, 0.001, 0.01, 0.05, Inf),
           palette = rev(p_value_color),
@@ -950,12 +994,16 @@ weh1114.pvalue <- tm_shape(weh1114_lisa)+
   tm_borders(alpha = 0.5)+
   tm_layout(main.title = "Weekend/holiday Morning Local Moran's I p-values", main.title.position = "center")
 
-tmap_arrange(weh1114.lag, weh1114.localmi, weh1114.pvalue, nrow = 2, sync = TRUE)
+tmap_arrange(weh1114.lag, weh1114.localmi, weh1114.pvalue, nrow = 3, sync = TRUE)
 ```
 
-##### Weekend/holiday evening peak 4pm - 7pm (16:00 - 19:00)
+In addition to the clusters in the Heartlands as seen previously, the Weekend/holiday Noon Peak 11am -- 2pm (11:00 -- 14:00) result shows a pattern of cells with statistically significant p-value emerge in the central of Singapore, in the areas of Tiong Bahru, Outram Park, and Orchard Road. These cells are surrounded by other cells with high spatially lagged trips but non-significant p-values. A possible interpretation for these cells is that these are popular areas for people to congregate on the weekends, increasing their number of trips, and due to their proximity, they exhibit statistically significant spatial autocorrelation. A more micro-level analysis might reveal why the bus stops within these areas are more prominent than others. For Orchard, road, the interpretation might be more straightforward, as perennially popular location for locals and tourists alike.
+
+**Weekend/holiday Evening Peak 4pm - 7pm (16:00 - 19:00)**
 
 ```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
 tmap_mode('view')
 
 # Spatially Lagged Values
@@ -972,7 +1020,9 @@ weh1619.lag <- tm_shape(weh1619_lisa)+
   tm_layout(main.title = "Weekend/holiday Morning Spatially Lagged Trips", main.title.position = "center")
 
 # Local Moran's I Statistics
-weh1619.localmi <- tm_shape(weh1619_lisa)+
+weh1619.localmi <- weh1619_lisa %>%
+  filter(p_ii < 0.05) %>%
+  tm_shape()+
   tm_fill('ii',
           style = "pretty", 
           title = "Local Moran's I Statistics",
@@ -985,7 +1035,9 @@ weh1619.localmi <- tm_shape(weh1619_lisa)+
   tm_layout(main.title = "Weekend/holiday Morning Local Moran's I values", main.title.position = "center")
 
 # Local Moran's I p-values
-weh1619.pvalue <- tm_shape(weh1619_lisa)+
+weh1619.pvalue <- weh1619_lisa %>%
+  filter(p_ii < 0.05) %>%
+  tm_shape()+
   tm_fill('p_ii',
           breaks = c(-Inf, 0.001, 0.01, 0.05, Inf),
           palette = rev(p_value_color),
@@ -1000,3 +1052,147 @@ weh1619.pvalue <- tm_shape(weh1619_lisa)+
 
 tmap_arrange(weh1619.lag, weh1619.localmi, weh1619.pvalue, nrow = 3, sync = TRUE)
 ```
+
+Lastly, for the Weekend/holiday evening peak 4pm - 7pm (16:00 - 19:00) Local Moran's I result, it is possible to find what seems to be the converge of other the patterns in the previous time windows. There are clusters of statistically significant cells with higher spatially lagged trips emerging in the Heartlands, Tiong Bahru, Orchard Road, and Harbourfront; the notable exception would be the lack of statistically significant cells in the Downtown Core. Aside from the pattern in major population centres, the pattern reinforces the previous observation that there is more activity at bus stops in popular areas for locals and tourists to visit and return during the evening peak period. A possible case for this would be the single cell on Sentosa island, a mostly purely leisure destination.
+
+Overall, the geospatial autocorrelation pattern that seems to emerge is the movement of people to and from work during the weekday and to leisure spots during the weekend and holiday. This pattern reveals itself through hexagons with higher level of spatially lagged trips, often bus interchanges in population centre, being surrounded by less similar neighbors. Or, hexagons with higher level of spatially lagged trips, often in leisure spots, being nearer to more similar neighbors and hexagons with higher spatially lagged trips but non-significant autocorrelation in the Downtown Core.
+
+The observation made can further be examined by visualizing the structure of the relationship between the values of a hexagon and its similarity to its neighbors, or what is categorized in Local Moran's I as low-low, low-high, high-low, high-high. This is can be done using the Moran Scatterplot andn LISA Cluster Map.
+
+#### Moran Scatterplot
+
+The Moran Scatterplot assign each of the hexagon cell of bus stops to one of four quadrants:
+
+-   High - High: Areas of high values surrounded by similar neighbors
+
+-   Low - Low: Areas of low values surrounded by similar neighbors
+
+-   High - Low: Areas of high values surrounded by dissimilar neighbors
+
+-   Low - High: Areas of low values surrounded by dissimilar neighbors
+
+The Moran Scatterplot visualization allows users to roughly comprehend the spatial clustering in the data set. This can be done using the *moran.plot()* function of the **spdep** package.
+
+::: callout-note
+Due to the usage of **sfdep** package, certain functions must be combined with the lisa objects in order for *moran.plot()* to work correctly.
+
+-   *scale()*: The scale function works to center and scale the values. This involves subtracting the value by the mean then dividing it by the standard deviation.
+
+-   *as.vector()*: This function transforms the scaled values into a more easily plottable object.
+
+-   *nb2listw()*: This function transform the neighbor list into a listw object which can be accepted by *moran.plot()*
+:::
+
+```{r}
+par(mfrow = c(2,2))
+
+# Weekday morning peak 6am - 9am
+wd69_scatter <- moran.plot(as.vector(scale(wd69_lisa$TOTAL_TRIP)), nb2listw(wd69_lisa$nb),
+           labels = as.character(wd69_lisa$grid_id),
+           xlab = 'z-Trip',
+           ylab = 'Spatially Lagged z-Trip',
+           main = 'Weekday Morning')
+
+# Weekday afternoon peak 5pm - 8pm (17:00 - 20:00)
+wd1720_scatter <- moran.plot(as.vector(scale(wd1720_lisa$TOTAL_TRIP)), nb2listw(wd1720_lisa$nb),
+           labels = as.character(wd1720_lisa$grid_id),
+           xlab = 'z-Trip',
+           ylab = 'Spatially Lagged z-Trip',
+           main = 'Weekday Afternoon')
+
+# Weekend/holiday morning peak 11am - 2pm (11:00 - 14:00)
+weh1114_scatter <- moran.plot(as.vector(scale(weh1114_lisa$TOTAL_TRIP)), nb2listw(weh1114_lisa$nb),
+           labels = as.character(weh1114_lisa$grid_id),
+           xlab = 'z-Trip',
+           ylab = 'Spatially Lagged z-Trip',
+           main = 'Weekend/holiday Noon')
+
+# Weekend/holiday evening peak 4pm - 7pm (16:00 - 19:00)
+weh1619_scatter <- moran.plot(as.vector(scale(weh1619_lisa$TOTAL_TRIP)), nb2listw(weh1619_lisa$nb),
+           labels = as.character(weh1619_lisa$grid_id),
+           xlab = 'z-Trip',
+           ylab = 'Spatially Lagged z-Trip',
+           main = 'Weekend/holiday Evening')
+
+
+```
+
+The draw back of the Moran Scatterplot is that we cannot visualize the spatial distribution of the hexagons, as well as the fact that it does not indicate significance of the Local Moran's I. Additionally, due to density of certain segments, it is difficult to discern their position.
+
+#### LISA Cluster Map
+
+The LISA Cluster to which each hexagon belongs can be found in the mean, median, and psyal columns created by *local_moran().* This can be used in combination with **tmap** to create our cluster map. The median will be used for the most accurate representation, accounting for outliers. Similar to before, we will only highlight polygons with a statistically significant value (p_value \< 0.05).
+
+The four segments of the LISA Cluster Map are similar to those of the Moran Scatterplot:
+
+-   High - High: Areas of high values surrounded by similar neighbors
+
+-   Low - Low: Areas of low values surrounded by similar neighbors
+
+-   High - Low: Areas of high values surrounded by dissimilar neighbors
+
+-   Low - High: Areas of low values surrounded by dissimilar neighbors
+
+```{r}
+tmap_mode('view')
+
+cluster_palette = c('#0000FF', '#FFB6C1', '#7EC0EE', '#FF0000')
+
+# Weekday morning peak 6am - 9am
+wd69_cluster <- wd69_lisa %>%
+  filter(p_ii <= 0.05) %>%
+  tm_shape()+
+  tm_fill(col = 'mean',
+          title = 'Weekday Morning',
+          palette = cluster_palette)
+
+# Weekday afternoon peak 5pm - 8pm (17:00 - 20:00)
+wd1720_cluster <- wd1720_lisa %>%
+  filter(p_ii <= 0.05) %>%
+  tm_shape()+
+  tm_fill(col = 'mean',
+          title = 'Weekday Afternoon',
+          palette = cluster_palette)
+
+# Weekend/holiday morning peak 11am - 2pm (11:00 - 14:00)
+weh1114_cluster <- weh1114_lisa %>%
+  filter(p_ii <= 0.05) %>%
+  tm_shape()+
+  tm_fill(col = 'mean',
+          title = 'Weekend/holiday Morning',
+          palette = cluster_palette)
+
+# Weekend/holiday evening peak 4pm - 7pm (16:00 - 19:00)
+weh1619_cluster <- weh1619_lisa %>%
+  filter(p_ii <= 0.05) %>%
+  tm_shape()+
+  tm_fill(col = 'mean',
+          title = 'Weekend/holiday Evening',
+          palette = cluster_palette)
+
+tmap_arrange(wd69_cluster, wd1720_cluster, weh1114_cluster, weh1619_cluster, ncol = 2, sync = TRUE)
+```
+
+Due to the display of only statistically significant hexagons, the pattern in the LISA Cluster Map is similar to that of the mapping of Local Moran's I values and p-value. However, it is possible to observe a that there seems to be an interlacing of Low-High cells next to High-High cells. This means that there are cells with low values surrounded by neighbors with high values next cells with high values surrounded by neighbors with high values. Possibly, this might result from some bus stops in a cell which see very few passengers that are near more frequented bus stops in neighboring cells.
+
+What is more interesting that there are groups of statistically significant cells surrounding a non-significant cells. This is the case, for example, for Tampines Interchange whose cell is not statistically significant by itself. This pattern is similar to those in the previous visualizations as well. However, if the raw trip number is used, one will find that this cell often has the highest number of trips. It is possible that due to its and, potentially, other interchanges' high trip values due to their special statuses, that they are spatial outliers. However, for their neighbors, their high number of trips help to define their level of spatial autocorrelation in the negative positive direction.
+
+## Conclusion
+
+This study aimed to conduct exploratory data analysis and analysis of LISA on the number of trips by origin bus stop in Singapore for four time frames: Weekday Morning, Weekday Afternoon, Weekend/holiday Morning, Weekend/holiday Evening. The analysis was done based on a layer of hexagon cells, each consisting of a certain number of bus stops.
+
+Data preparation was done on aspatial and geospatial data sets which were retrieved from LTA Data Mall. For aspatial data, this required separating the bus stop trips by origin bus stops in September 2023 into four different time frames. Subsequently, the number of trips were tallied by the origin bus stops. For geospatial data, hexagon layers were created based on the geometry of the bus stops' location in Singapore. The hexagons have an edge-to-edge distance of 500 metre. Finally the aspatial and geospatial data sets were combined so that each hexagon would contain a certain number of bus stops and their total number of trips for each of the four time frame.
+
+Exploratory Data Analysis in the form of descriptive analysis and geovisualization shows that each hexagon can contain a wide range of bus trips, due to its number of bus stops as well as the popularity of the bus stops. Additionally, the range of trips in each time frame are different, with higher values tending to be during the Weekday periods. It was also found that there seems to be visual clusters where hexagons with higher number of trips tend to be nearer to each other. This provided the rationale for LISA analysis.
+
+Before LISA analysis was conducted, the neighborhood was defined using the Adaptive Distance Matrix, due to the inappropriateness of the Contiguity and Fixed Distance Matrix methods. The neighbor list, weight list using inverse distance matrix, and spatially lagged number of trips were then created for each hexagon for each time frame.
+
+A null and alternative hypotheses were defined before conducting the LISA analysis. The LISA analysis consisted of calculating the relevant Local Moran's I statistics for each hexagon for each time frame and visualizing them. In addition, the Moran scatter plot and LISA cluster map were created using the quadrant structure. In order to maintain visual comprehensibility, only hexagons with a statistically significant p-value were visualized. From these analysis, it was found that there were a different pattern of bus stop usage from Weekday Morning to Weekday Afternoon and Weekend/Holiday Noon to Weekend/Holiday Evening as people go and return from work or leisure activities. There were clustering around areas with high number of bus trips, resulting in a number of High-High and Low-High, where less frequented bus stops were neighbors with highly frequented bus stops. Lastly, it was determined that major bus interchanges and stops, which have very high number of trips, could be spatial outliers which are not statistically significant due to their high values, but do affect the spatial relationships of their neighbors.
+
+### Future Works
+
+Future studies might consider studying the flow of bus trips in order to have better grasp of the demand during different time frames. This might better explain the effect of bus interchanges, where many bus services terminate and begin.
+
+Additionally, the usage of bus stops can be considered in conjunction with the usage of MRT stations as they can work in tandem, especially where bus interchanges are concerned.
+
+For future analysis, different types of bus services should be differentiated as feeder bus services are different from long-haul or express bus services, albeit being highly essential to the transportation needs in local communities. This could be done by adding an extra variable to classify the bus stop based on the majority of their bus services.
