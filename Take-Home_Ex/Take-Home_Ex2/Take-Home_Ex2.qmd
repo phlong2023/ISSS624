@@ -1,0 +1,477 @@
+---
+title: "Take-Home_Ex2"
+date: '7 December 2023'
+date-modified: 'last-modified'
+format: html
+execute: 
+  eval: true # run the code live
+  echo: true # all code will appear
+  warning: false # hide all warnings
+editor: visual
+---
+
+## Getting Started
+
+First, the necessary R packages will be loaded using the *p_load()* function of the **pacman** package. *p_load()* will also install any package which is not already installed. The following packages will be loaded:
+
+-   [**sf**](https://cran.r-project.org/web/packages/sf/index.html)**:** For handling of geospatial data.
+
+-   [**sfdep**](https://sfdep.josiahparry.com/)**:** For determining the spatial dependence of spatial features. The three main categories of functionality relates to the determination of geometry neighbors, weights, and LISA.
+
+-   [**tidyverse**](https://www.tidyverse.org/)**:** For manipulation of non-spatial data. This package contains ggplot2 for plotting, dplyr and tidyr for dataframe manipulation, and readr for reading comma-separated values (CSV).
+
+-   [**tmap**](https://cran.r-project.org/web/packages/tmap/vignettes/tmap-getstarted.html)**:** For thematic mapping, especially the mapping of simple features data frame.
+
+-   [**spdep**](https://github.com/r-spatial/spdep): For drawing Moran scatterplot.
+
+```{r}
+pacman::p_load(tmap, sf, sp, DT, performance, reshape2, ggpubr, units, tidyverse, sfdep)
+```
+
+## Importing Required Data
+
+For the purpose of this study, two types of data will be used: geospatial data which consists of spatial features and their coordinates information, and aspatial data which consists of attributes which can be ascribed to the geospatial data. Specifically, the following datasets will be used for each type:
+
+1.  Geospatial Data:
+    -   BusStop.shp: This shape file contains the location of the bus stops in Singapore as at July 2023. This file can be retrieved from the Land Transport Authority (LTA) Data Mall ([link](https://datamall.lta.gov.sg/content/datamall/en/search_datasets.html?searchText=bus%20stop)).
+    -   Business.shp:
+    -   entertn.shp:
+    -   F&B.shp
+    -   FinServ.shp
+    -   Liesure&Recreation.shp
+    -   Retails.shp
+2.  Aspatial Data:
+    -   origin_destination_bus_202309.csv: This CSV file contains the detail of bus trips from an originating bus stop to a destination bus stop, identified by their unique codes, each hour of the day during September 2023. The data is further broken down into weekend or weekday, but not by the specific day of the week. This data can be retrieved by using the LTA Data Mall's API ([link](https://datamall.lta.gov.sg/content/dam/datamall/datasets/LTA_DataMall_API_User_Guide.pdf)).
+    -   hdb.csv:
+
+The first steps taken will be to import these files into the R environment in a manipulable format.
+
+### Importing Geospatial Data
+
+Geospatial data can be imported using the *st_read()* function of the sf package. This will import the file into the R environment as a sf (simple features) data frame. *st_transform()* is added to transform the Coordinate Reference System (CRS) to EPSG: 3414, which is the CRS of [Singapore](https://epsg.io/3414).
+
+::: callout-note
+In *st_read():*
+
+-   dsn: the directory where the shape file is stored
+
+-   layer: the name of the shape file
+:::
+
+```{r}
+
+mpsz <- st_read(dsn = 'data/geospatial',
+                layer = 'MPSZ-2019') %>%
+  st_transform(crs = 3414)
+
+busstop <- st_read(dsn = 'data/geospatial',
+                   layer = 'BusStop') %>%
+  st_transform(crs = 3414)
+
+trainstation <- st_read(dsn = 'data/geospatial',
+                        layer = 'RapidTransitSystemStation')
+# trainstation <- trainstation %>%
+#   filter(st_is_valid(.))
+
+trainexit <- st_read(dsn = 'data/geospatial',
+                     layer = 'Train_Station_Exit_Layer')
+
+Business <- st_read(dsn = 'data/geospatial',
+            layer = 'Business')
+
+Entertainment <- st_read(dsn = 'data/geospatial',
+            layer = 'entertn')
+
+FoodBev <- st_read(dsn = 'data/geospatial',
+            layer = 'F&B')
+
+FinServ <- st_read(dsn = 'data/geospatial',
+            layer = 'FinServ')
+
+Leisure <- st_read(dsn = 'data/geospatial',
+            layer = 'Liesure&Recreation')
+
+Retails <- st_read(dsn = 'data/geospatial',
+            layer = 'Retails')
+
+```
+
+To get a better grasp of the busstop data frame, *glimpse()* function can be used.
+
+::: callout-note:
+The data type for each column can be seen as well as some of their values. For sf data frames, there is a geometry column (POINT type) which contains the location information for each polygon.
+:::
+
+```{r}
+glimpse(busstop)
+```
+
+Additionally, busstop can be visualized in order to spot any anomaly. This can be done using the *qtm()* function in the **tmap** package for quick plotting.
+
+```{r}
+tm_shape(mpsz)+
+  tm_polygons()+
+  tm_shape(busstop)+
+  tm_dots()
+```
+
+The visualization shows us that there are four bus stops in Malaysia. Let's remove them so that only bus stops in Singapore will be considered. This is because these special bus stops might exhibit different behaviors due to their different context from the rest of the bus stops in Singapore.
+
+*filter()* can be used in conjunction with a dplyr step to remove these bus stops.
+
+`{r} busstop <- busstop %>%   filter(!BUS_STOP_N %in% c('46609','47701', '46211', '46219', '46239'))}`
+
+*qtm()* can be used again to check that the bus stops have been removed.
+
+A similar procedures can be done to glimpse and map the information in the other sf data frames.
+
+```{r}
+glimpse(Business)
+
+tm_shape(mpsz)+
+  tm_polygons()+
+  tm_shape(Business)+
+  tm_dots()
+```
+
+Description
+
+```{r}
+glimpse(Entertainment)
+
+tm_shape(mpsz)+
+  tm_polygons()+
+  tm_shape(Entertainment)+
+  tm_dots()
+```
+
+Description
+
+```{r}
+glimpse(FinServ)
+
+tm_shape(mpsz)+
+  tm_polygons()+
+  tm_shape(FinServ)+
+  tm_dots()
+```
+
+```{r}
+glimpse(FoodBev)
+
+tm_shape(mpsz)+
+  tm_polygons()+
+  tm_shape(FoodBev)+
+  tm_dots()
+```
+
+```{r}
+glimpse(Leisure)
+
+tm_shape(mpsz)+
+  tm_polygons()+
+  tm_shape(Leisure)+
+  tm_dots()
+```
+
+Description (a lot of columns, possible to only keep the one we need)
+
+```{r}
+glimpse(Retails)
+
+tm_shape(mpsz)+
+  tm_polygons()+
+  tm_shape(Retails)+
+  tm_dots()
+```
+
+### Importing Aspatial Data
+
+The *read_csv()* function of readr can be used to import the origin_destination_bus_202309 CSV file into the R environment as a data frame.
+
+```{r}
+passenger <- read_csv('data/aspatial/origin_destination_bus_202309.csv')
+```
+
+From the message provided by R, it can be seen that the passenger has 5,714,196 rows and 7 columns.
+
+*head()* can be used instead of *glimpse()* to view the top five rows of the passenger data frame. This will also allow us to see the data type of each of the column.
+
+```{r}
+head(passenger)
+```
+
+Note that the ORIGIN_PT_CODE and DESTINATION_PT_CODE are in the character ("chr") data type. However, we would like it to be in the factor ("fctr") data type for easier categorization and sorting. This can be done by using the *as.factor()* function.
+
+```{r}
+passenger$ORIGIN_PT_CODE <- as.factor(passenger$ORIGIN_PT_CODE)
+passenger$DESTINATION_PT_CODE <- as.factor(passenger$DESTINATION_PT_CODE)
+```
+
+We can use *head()* to check the data type of the passenger data frame.
+
+```{r}
+head(passenger)
+```
+
+Similarly, the hdb.csv data can be imported using similar methods
+
+```{r}
+hdb <- read_csv('data/aspatial/hdb.csv')
+
+head(hdb)
+```
+
+Unlike passenger, however, the hdb csv file has a column which indicates the longitude and latitude of the each HDB block. This means that it can be visualized using *mapview()* of the **mapview** package.
+
+```{r}
+hdb_sf <- hdb %>%
+  st_as_sf(coords = c('lng','lat'),
+           crs = 4326) %>%
+  st_transform(3414)
+
+qtm(hdb_sf)
+```
+
+## Data Preparation
+
+### Wrangling Aspatial Data
+
+#### Filtering the passenger Data Set for Desired Time Frames
+
+For the purpose of this study, the passenger data set needs to be filtered to only contain trips falling within one of the following time frames:
+
+| Peak hour period             | Bus tap on time |
+|------------------------------|-----------------|
+| Weekday morning peak         | 6am to 9am      |
+| Weekday afternoon peak       | 5pm to 8pm      |
+| Weekend/holiday morning peak | 11am to 2pm     |
+| Weekend/holiday evening peak | 4pm to 7pm      |
+
+This can be accomplished using the *filter()* function and the dplyr steps. We can create four separate data frames to store the four different time frames
+
+```{r}
+# Weekday morning peak 6am - 9am 
+passenger_wd_69 <- passenger %>%   filter(DAY_TYPE == 'WEEKDAY') %>%   filter(TIME_PER_HOUR >= 6 & TIME_PER_HOUR <= 9)  
+
+# Weekday afternoon peak 5pm - 8pm (17:00 - 20:00) 
+passenger_wd_1720 <- passenger %>%   filter(DAY_TYPE == 'WEEKDAY') %>%   filter(TIME_PER_HOUR >= 17 & TIME_PER_HOUR <= 20)  
+
+# Weekend/holiday morning peak 11am - 2pm (11:00 - 14:00) 
+passenger_weh_1114 <- passenger %>%   filter(DAY_TYPE == 'WEEKENDS/HOLIDAY') %>%   filter(TIME_PER_HOUR >= 11 & TIME_PER_HOUR <= 14)  
+
+# Weekend/holiday evening peak 4pm - 7pm (16:00 - 19:00) 
+passenger_weh_1619 <- passenger %>%   filter(DAY_TYPE == 'WEEKENDS/HOLIDAY') %>%   filter(TIME_PER_HOUR >= 16 & TIME_PER_HOUR <= 19)
+```
+
+After the different trips have been categorized into their separate data frames, the total number trips for each origin bus stop can be tallied into a single statistic for the study period. This can be accomplished using the *summarize()* function. The example below shows this operation using passenger_wd_69.
+
+::: callout-note
+The *group_by()* function is used to instruct R to conduct operations based on the groups created by group_by(). In this case, the summary operations will be done based on the origin bus stop codes.
+:::
+
+```{r}
+# Tallying the trips by origin bus stop for Weekday morning peak 6am - 9am
+passenger_wd_69_tallied <- passenger_wd_69 %>%
+  group_by(ORIGIN_PT_CODE, DESTINATION_PT_CODE) %>%
+  summarise(TRIPS = sum(TOTAL_TRIPS))
+
+
+passenger_wd_69_tallied
+```
+
+As can be seen, the newly created data frame consists only of the total trip numbers for each origin bus stop by their destination. This can be repeated for the other time frames.
+
+```{r}
+
+# Tallying the trips by origin bus stop for Weekday afternoon peak 5pm - 8pm (17:00 - 20:00)
+passenger_wd_1720_tallied <- passenger_wd_1720 %>%
+  group_by(ORIGIN_PT_CODE, DESTINATION_PT_CODE) %>%
+  summarise(TRIPS = sum(TOTAL_TRIPS))
+
+# Tallying the trips by origin bus stop for Weekend/holiday morning peak 11am - 2pm (11:00 - 14:00)
+passenger_weh_1114_tallied <- passenger_weh_1114 %>%
+  group_by(ORIGIN_PT_CODE, DESTINATION_PT_CODE) %>%
+  summarise(TRIPS = sum(TOTAL_TRIPS))
+
+# Tallying the trips by origin bus stop for Weekend/holiday evening peak 4pm - 7pm (16:00 - 19:00)
+passenger_weh_1619_tallied <- passenger_weh_1619 %>%
+  group_by(ORIGIN_PT_CODE, DESTINATION_PT_CODE) %>%
+  summarise(TRIPS = sum(TOTAL_TRIPS))
+```
+
+### Wrangling Geospatial Data
+
+In order to adequately visualize the busstop sf data frame, we need to define a mapping layer. An example of a mapping layer would be to use the Master Plan 2019 Planning Sub-zone created by the Urban Redevelopment Authority (URA). However, for the purpose of this study, a hexagon layer will be used to ensure standardization of the size of each polygon and the evenly spaced gaps between a polygon and its neighbors.
+
+The steps in this section will detail the creation of the hexagon layer using the busstop data frame and visualize the layer on a map of Singapore.
+
+#### Creating a Hexagon Layer in R
+
+The steps taken in this section is based on the guide provided by Kenneth Wong of Urban Data Palette ([link](https://urbandatapalette.com/post/2021-08-tessellation-sf/)).
+
+Firstly, a hexagon or honeycomb grid can be created based on the busstop data frame using the *st_make_grid()* function.
+
+::: callout-note
+There are some notable arguments in the *st_make_grid()* function:
+
+-   cellsize = c(750,750): This argument indicates the size of each hexagon, calculated as the distance between opposite edges. If the cell size is large, each hexagon can encompasses multiple bus stops, whereas if a smaller cell size can help us differentiate between individual bus stop. However, a smaller cell size with many hexagons will take more time to create. For this study, hexagons of 375m (this distance is the perpendicular distance between the centre of the hexagon and its edges) will be created with the parameter of 750.
+
+-   what = 'polygons': We would like to create polygons on a grid.
+
+-   square = FALSE: The default argument is TRUE, which would create a square grid. FALSE is specified in order to create a hexagon grid.
+:::
+
+```{r}
+area_honeycomb_grid = st_make_grid(busstop, cellsize = c(750,750), what = 'polygons', square = FALSE)
+
+area_honeycomb_grid
+```
+
+The area_honeycomb_grid contains 136906 features of the same Projected CRS as the busstop data frame. If the *plot()* function is used, the hexagon grid will be displayed. However, this grid contains no information and might be too small to discern the individual cell.
+
+```{r}
+#qtm(area_honeycomb_grid)
+```
+
+The area_honey_comb needs to be converted to a sf data frame for further manipulation using *st_sf()*. Additionally, we can assign a unique id to each of the hexagon cell in area_honey_comb using *mutate().*
+
+```{r}
+honeycomb_grid_sf = st_sf(area_honeycomb_grid) %>%
+  # add grid ID
+  mutate(grid_id = 1:length(lengths(area_honeycomb_grid)))
+```
+
+Following this, we can use *lengths()* and *st_intersect()* to determine the allocation of bus stop in each cell. The goal is to create a new column, consisting of the number of bus stop in each of the cell. The *filter()* function can then be added to remove all cells with no bus stop and create the final sf data frame.
+
+```{r}
+# Counting the number of bus stop in each cell
+honeycomb_grid_sf$n_busstop = lengths(st_intersects(honeycomb_grid_sf,busstop))
+
+# Removing all cells without bus stop
+honeycomb_count = filter(honeycomb_grid_sf, n_busstop > 0)
+
+```
+
+We can see that there are 1050 hexagon cells in honeycomb_count, indicating that there are 1050 cells with at least 1 bus stops.
+
+At this point, the hexagon grid of bus stop can be drawn onto a map of Singapore using the functions of the **tmap** package. Additionally, the n_busstop column can be passed to the *tm_fill()* function to shade the cell based on the number of bus stops in it.
+
+::: callout-note
+-   tm_basemap: Choosing the basemap layer on which the hexagon grid will be drawn. OpenStreetMap is chosen due to its high fidelity while not being overly crowded. Additionally, OpenStreetMap displays icon for bus stops in Singapore, allowing user to visually check any cell.
+
+    -   If an incorrect CRS was specified in the earlier steps, the basemap will be of an incorrect location or alignment.
+:::
+
+```{r}
+tmap_mode('plot')
+
+bushexmap <- tm_shape(honeycomb_count)+
+  tm_fill(
+    col = "n_busstop",
+    palette = "Blues",
+    style = "cont",
+    title = "Number of bus stop",
+    id = "grid_id",
+    showNA = FALSE,
+    alpha = 0.7,
+    popup.vars = c(
+      "Number of bus stop: " = "n_busstop"
+    ),
+    popup.format = list(
+      n_busstop = list(format = "f", digits = 0)
+    )
+  ) +
+  tm_borders(col = "grey40", lwd = 0.7)+
+  tm_basemap(server = c('Esri.WorldGrayCanvas'))+
+  tm_layout(main.title = 'Distribution of Bus Stops', main.title.position = 'center')
+
+bushexmap
+```
+
+From the illustration, we can see that each cell might contain up to 14 bus stops. A bar chat can be drawn with the **ggplot2** package to visualize the distribution of number of bus stop in each cell.
+
+```{r}
+ggplot(honeycomb_count, aes(x=n_busstop))+   geom_bar()+   theme_classic()+   geom_text(aes(label = after_stat(count)), stat = "count", vjust = -0.5, colour = "black")
+```
+
+As can be seen, the majority of cells contain 1-6 bus stops with only 285 cells containing 7 or more bus stops. This shows that the cells adequately capture solitary bus stop, as well as pairs of bus stops (bus stops which are opposite each other, served by the same bus services).
+
+### Combining Aspatial and Geospatial Data
+
+In order to conduct geospatial analysis, a data frame which contains the hexagon cells as well as the number of bus trips for each cells must be created. This can be done using the *left_join()* function, which will keep all the rows in the left data frame.
+
+::: callout-note
+There are important arguments which can be used to create a cleaner combined data frame.
+
+-   by = join_by(BUS_STOP_N == ORIGIN_PT_CODE)): Indicate the column by which the two data frames can be matched and joined. In this case, the bus stop code will be used.
+
+-   select(1,4,5,6): Indicate the index number of the columns to be kept in the final data frame. Only the bus stop number (column 1), destination bus stop (column 4), total number of trips (column 5), and geometry (column 6) will be kept.
+
+-   replace(is.na(.),0): Replace all value of NA with 0. This is to ensure that bus stop with no trips in a given time frame is accurately tallied at 0.
+:::
+
+For Origin Destination Bus Stop
+
+```{r}
+# Weekday morning peak 6am - 9am
+# passenger_wd_69_combined <- right_join(busstop, passenger_wd_69_tallied, by = join_by(BUS_STOP_N == ORIGIN_PT_CODE)) %>%
+#   select(1,4,5, 6)%>%
+#   rename(ORIG_PT_CODE = BUS_STOP_N,
+#          DEST_PT_CODE = DESTINATION_PT_CODE) %>%
+#   replace(is.na(.),0)
+
+# Weekday afternoon peak 5pm - 8pm (17:00 - 20:00)
+# passenger_wd_1720_combined <- right_join(busstop, passenger_wd_1720_tallied, by = join_by(BUS_STOP_N == ORIGIN_PT_CODE))%>%
+#   select(1,4,5, 6)%>%
+#   rename(ORIG_PT_CODE = BUS_STOP_N,
+#          DEST_PT_CODE = DESTINATION_PT_CODE) %>%
+#   replace(is.na(.),0)
+
+# Weekend/holiday morning peak 11am - 2pm (11:00 - 14:00)
+# passenger_weh_1114_combined <- right_join(busstop, passenger_weh_1114_tallied, by = join_by(BUS_STOP_N == ORIGIN_PT_CODE))%>%
+#   select(1,4,5, 6)%>%
+#   rename(ORIG_PT_CODE = BUS_STOP_N,
+#          DEST_PT_CODE = DESTINATION_PT_CODE) %>%
+#   replace(is.na(.),0)
+# 
+# # Weekend/holiday evening peak 4pm - 7pm (16:00 - 19:00)
+# passenger_weh_1619_combined <- right_join(busstop, passenger_weh_1619_tallied, by = join_by(BUS_STOP_N == ORIGIN_PT_CODE))%>%
+#   select(1,4,5, 6)%>%
+#   rename(ORIG_PT_CODE = BUS_STOP_N,
+#          DEST_PT_CODE = DESTINATION_PT_CODE) %>%
+#   replace(is.na(.),0)
+```
+
+For Both
+
+```{r}
+orig_69 <- left_join(passenger_wd_69_tallied, busstop,
+                       by = join_by(ORIGIN_PT_CODE == BUS_STOP_N)) %>%
+  select(1,2,3,6)%>%
+  st_as_sf()
+
+destin_69 <- left_join(passenger_wd_69_tallied, busstop,
+                   by = join_by(DESTINATION_PT_CODE == BUS_STOP_N)) %>%
+  select(1,2,3,6) %>%
+  st_as_sf()
+
+orig_69_hex <- st_join(honeycomb_count, orig_69, by = st_within)%>%
+  select(1,3,4,5,6) %>%
+  filter(grid_id != 50) %>%
+  rename(ORIG_GRID = grid_id,
+         ORIG_GEOM = area_honeycomb_grid) %>%
+  as.data.frame()
+
+destin_69_hex <- st_join(honeycomb_count, destin_69, by = st_within)%>%
+  select(1,3,4,5,6) %>%
+  filter(grid_id != 50) %>%
+  rename(DESTIN_GRID = grid_id,
+         DESTIN_GEOM = area_honeycomb_grid) %>%
+  as.data.frame()
+
+combined_69_hex <- inner_join(orig_69_hex, destin_69_hex, by = join_by (ORIGIN_PT_CODE == ORIGIN_PT_CODE,DESTINATION_PT_CODE == DESTINATION_PT_CODE)) %>%
+  select(ORIG_GRID, DESTIN_GRID, TRIPS.x)%>%
+  group_by(ORIG_GRID, DESTIN_GRID) %>%
+  summarise(TOTAL_TRIP = sum(TRIPS.x))
+```

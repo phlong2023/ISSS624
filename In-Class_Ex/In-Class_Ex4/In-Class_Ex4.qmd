@@ -1,0 +1,203 @@
+---
+title: "In-Class_Ex4"
+date: '9 December 2023'
+date-modified: 'last-modified'
+format: html
+execute: 
+  eval: true # run the code live
+  echo: true # all code will appear
+  warning: false # hide all warnings
+editor: visual
+---
+
+## Getting Started
+
+```{r}
+pacman::p_load(tidyverse, sf, httr, tmap, performance)
+```
+
+## Geocoding using SLA API
+
+```{r}
+url <- 'https://www.onemap.gov.sg/api/common/elastic/search'
+
+csv <- read_csv('data/aspatial/Generalinformationofschools.csv')
+postcodes <- csv$`postal_code`
+
+found <- data.frame()
+not_found <- data.frame()
+
+for(postcode in postcodes) {
+  query <- list('searchVal' = postcode,
+                'returnGeom' = 'Y',
+                'getAddrDetails' = 'Y',
+                'pageNum' = '1')
+  res <- GET(url,query = query)
+  if((content(res)$found)!= 0 ){
+    found <- rbind(found, data.frame(content(res))[4:13])
+  }
+  else{
+    not_found = data.frame(postcode)
+  }
+}
+```
+
+Next, the code chunk below will be used to combine both *found* and *not_found* data frames into a single tibble df called merged. At the same time, we will write *merged* and *not_found* tibble dfs into csv format for future use.
+
+```{r}
+#| eval: false
+merged <- merge(csv, found, by.x = 'postal_code', by.y = 'results.POSTAL', all = TRUE)
+
+write.csv(merged, file = 'data/aspatial/schools.csv')
+
+write.csv(not_found, file = 'data/aspatial/not_found.csv')
+```
+
+## Converting an aspatial data frame into a simple feature tibble data frame
+
+### Importing and tidying *schools.csv* data frame
+
+```{r}
+schools <- read_csv('data/aspatial/schools.csv')
+
+schools <- schools %>%
+  rename(latitude = results.LATITUDE,
+         longitude = results.LONGITUDE) %>%
+  select(postal_code, school_name, latitude, longitude)
+```
+
+### Converting an aspatial data frame into sf tibble data frame
+
+```{r}
+schools <- st_as_sf(schools, 
+                    coords = c('longitude','latitude'),
+                    crs = 4326)%>%
+  st_transform(crs = 3414)
+```
+
+### Plotting a point simple feature layer
+
+To ensure that *schools* sf df has been projected and converted correctly, you can plot the school points data for visual inspection.
+
+```{r}
+tmap_mode('view')
+
+tm_shape(schools)+
+  tm_dots()+
+  tm_view(set.zoom.limits = c(11,14))
+```
+
+## Preparing
+
+### Point-in-Polygon Count
+
+Importing *Master Planning Sub-zone 2019*
+
+```{r}
+mpsz <- st_read(dsn = 'data/geospatial',
+                layer = 'MPSZ-2019') %>%
+  st_transform(crs = 3414)
+```
+
+Count number of school that falls within a planning subzone.
+
+```{r}
+mpsz$`SCHOOL_COUNT` <- lengths(st_intersects(mpsz, schools))
+```
+
+### Importing Business shapefile
+
+```{r}
+business <- st_read(dsn = 'data/geospatial',
+                    layer = 'Business')
+```
+
+```{r}
+tmap_options(check.and.fix = TRUE)
+tmap_mode('plot')
+
+tm_shape(mpsz)+
+  tm_polygons()+
+  tm_shape(business)+
+  tm_dots()
+```
+
+## The Data
+
+```{r}
+flow_data <- read_rds('data/rds/flow_data_tidy.rds')
+glimpse(flow_data)
+```
+
+```{r}
+flow_data$FlowNoIntra <- ifelse(
+  flow_data$ORIGIN_SZ == flow_data$DESTIN_SZ,
+  0, flow_data$MORNING_PEAK)
+flow_data$offset <- ifelse(
+  flow_data$ORIGIN_SZ == flow_data$DESTIN_SZ,
+  0.000001, 1)
+
+inter_zonal_flow <- flow_data %>% 
+  filter(FlowNoIntra >0)
+
+inter_zonal_flow <- inter_zonal_flow %>% 
+  rename(TRIPS = MORNING_PEAK,
+         DIST = dist)
+```
+
+### Origin (Production) Constrained SIM
+
+```{r}
+orcSIM_Poisson <- glm(formula = TRIPS ~
+                        ORIGIN_SZ +
+                        log(SCHOOL_COUNT)+
+                        log(RETAIL_COUNT)+
+                        log(DIST) - 1, #the -1 is to remove the intercept which is not necessary in a constrained model
+                      family = poisson(link = 'log'),
+                      data = inter_zonal_flow,
+                      na.action = na.exclude)
+
+summary(orcSIM_Poisson)
+```
+
+#### Goodness-of-Fit
+
+```{r}
+CalcRSquared <- function(observed,estimated){
+  r <- cor(observed, estimated)
+  R2 <- r^2
+  R2
+}
+```
+
+We can examine how the constraints hold for destinations this time.
+
+```{r}
+CalcRSquared(orcSIM_Poisson$data$TRIPS, orcSIM_Poisson$fitted.values)
+```
+
+```{r}
+performance_rmse(orcSIM_Poisson,
+                 normalized = FALSE)
+```
+
+### Doubly Constrained
+
+```{r}
+dbcSIM_Poisson <- glm(formula = TRIPS ~
+                        ORIGIN_SZ +
+                        DESTIN_SZ +
+                        log(DIST), # No - 1 after log(DIST)
+                      family = poisson(link = 'log'),
+                      data = inter_zonal_flow,
+                      na.action = na.exclude)
+```
+
+```{r}
+CalcRSquared(dbcSIM_Poisson$data$TRIPS, dbcSIM_Poisson$fitted.values)
+```
+
+```{r}
+performance_rmse(dbcSIM_Poisson,
+                 normalized = FALSE)
+```
