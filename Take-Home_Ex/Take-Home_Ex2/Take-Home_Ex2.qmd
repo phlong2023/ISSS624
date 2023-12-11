@@ -10,6 +10,8 @@ execute:
 editor: visual
 ---
 
+## Objectives
+
 ## Getting Started
 
 First, the necessary R packages will be loaded using the *p_load()* function of the **pacman** package. *p_load()* will also install any package which is not already installed. The following packages will be loaded:
@@ -25,30 +27,44 @@ First, the necessary R packages will be loaded using the *p_load()* function of 
 -   [**spdep**](https://github.com/r-spatial/spdep): For drawing Moran scatterplot.
 
 ```{r}
-pacman::p_load(tmap, sf, sp, DT, performance, reshape2, ggpubr, units, tidyverse, sfdep)
+pacman::p_load(tmap, sf, sp, DT, performance, reshape2, ggpubr, units, tidyverse, sfdep, stplanr)
 ```
+
+## Defining the Desired Time Frame
+
+There are four time windows of transit behaviour which can be considered:
+
+| Peak hour period             | Bus tap on time |
+|------------------------------|-----------------|
+| Weekday morning peak         | 6am to 9am      |
+| Weekday afternoon peak       | 5pm to 8pm      |
+| Weekend/holiday morning peak | 11am to 2pm     |
+| Weekend/holiday evening peak | 4pm to 7pm      |
+
+This study will focus on the **Weekend/holiday Morning Peak 11am - 2pm**. This would allow the study to focus on the transit flow of Singapore residents during a period of rest and relaxation, leading to recommendations to improve the attractiveness of dining, leisure, retail, and entertainment destinations in Singapore.
 
 ## Importing Required Data
 
 For the purpose of this study, two types of data will be used: geospatial data which consists of spatial features and their coordinates information, and aspatial data which consists of attributes which can be ascribed to the geospatial data. Specifically, the following datasets will be used for each type:
 
 1.  Geospatial Data:
-    -   BusStop.shp: This shape file contains the location of the bus stops in Singapore as at July 2023. This file can be retrieved from the Land Transport Authority (LTA) Data Mall ([link](https://datamall.lta.gov.sg/content/datamall/en/search_datasets.html?searchText=bus%20stop)).
-    -   Business.shp:
-    -   entertn.shp:
-    -   F&B.shp
-    -   FinServ.shp
-    -   Liesure&Recreation.shp
-    -   Retails.shp
+    -   BusStop.shp: This shape file contains the locations of the bus stops in Singapore as at July 2023. This file can be retrieved from the Land Transport Authority (LTA) Data Mall ([link](https://datamall.lta.gov.sg/content/datamall/en/search_datasets.html?searchText=bus%20stop)). They are stored as points.
+    -   RapidTransitSystemStation.shp: This shape file contains the locations of all Mass Rapid Transit (MRT) and Light Rail Transit (LRT) stations in Singapore in polygon shapes.
+    -   Train_Station_Exit_Layer.shp: This shape file contains the exit points of all MRT and LRT stations in Singapore. They are stored as points.
+    -   entertn.shp: This shape file contains the locations of entertainment venues in Singapore such as cinemas and theatres. They are stored as points.
+    -   F&B.shp: This shape file contains the locations of Food & Beverage venues in Singapore such as restaurants and cafes. They are stored as points.
+    -   FinServ.shp: This shape file contains the locations of Financial Services in Singapore such ATMs, money changers, and banks. They are stored as points.
+    -   Liesure&Recreation.shp: This shape file contains the locations of Leisure and Recreation venues in Singapore such as sport venues, museums, and galleries. They are stored as points.
+    -   Retails.shp: This shape file contains the locations of Retail venues in Singapore, including all shops which might not fall under other categories. They are stored as points.
 2.  Aspatial Data:
     -   origin_destination_bus_202309.csv: This CSV file contains the detail of bus trips from an originating bus stop to a destination bus stop, identified by their unique codes, each hour of the day during September 2023. The data is further broken down into weekend or weekday, but not by the specific day of the week. This data can be retrieved by using the LTA Data Mall's API ([link](https://datamall.lta.gov.sg/content/dam/datamall/datasets/LTA_DataMall_API_User_Guide.pdf)).
-    -   hdb.csv:
+    -   hdb.csv: This CSV file contains the details of different HDB blocks in Singapore, including the number of dwelling units and their types. More importantly, it also consists of the longitudes and latitudes of the HDB blocks, which would allow us to create a sf data frame and treat the information as a spatial object.
 
 The first steps taken will be to import these files into the R environment in a manipulable format.
 
 ### Importing Geospatial Data
 
-Geospatial data can be imported using the *st_read()* function of the sf package. This will import the file into the R environment as a sf (simple features) data frame. *st_transform()* is added to transform the Coordinate Reference System (CRS) to EPSG: 3414, which is the CRS of [Singapore](https://epsg.io/3414).
+Geospatial data can be imported using the *st_read()* function of the sf package. This will import the file into the R environment as a sf (simple features) data frame. *st_transform()* can be added to transform the Coordinate Reference System (CRS) to EPSG: 3414, which is the CRS of [Singapore](https://epsg.io/3414).
 
 ::: callout-note
 In *st_read():*
@@ -58,134 +74,285 @@ In *st_read():*
 -   layer: the name of the shape file
 :::
 
-```{r}
+#### Master Planning Sub-Zone 2019
 
+::: callout-important
+Even though the study's analysis layer is based on hexagon cells, by importing the Master Planning Sub-Zone 2019 file, other point layers such as Retail and Leisure can be contextualized onto the map of Singapore. This will allows for the visualization of their locations in different planning sub-zones of Singapore.
+:::
+
+```{r}
 mpsz <- st_read(dsn = 'data/geospatial',
                 layer = 'MPSZ-2019') %>%
   st_transform(crs = 3414)
 
+glimpse(mpsz)
+```
+
+The data type for each column can be seen as well as some of their values. For sf data frames, there is a geometry column (MULTIPOLYGON type) which contains the location information for each polygon.
+
+Additionally, mpsz can be visualized in order to spot any anomaly. This can be done using the *qtm()* function in the **tmap** package for quick plotting.
+
+```{r}
+tm_shape(mpsz)+
+  tm_polygons(col = 'white')
+```
+
+#### Bus Stop
+
+The steps used to import and examine the mpsz data frame can be repeated for the busstop data frame.
+
+```{r}
 busstop <- st_read(dsn = 'data/geospatial',
                    layer = 'BusStop') %>%
   st_transform(crs = 3414)
 
-trainstation <- st_read(dsn = 'data/geospatial',
-                        layer = 'RapidTransitSystemStation')
-# trainstation <- trainstation %>%
-#   filter(st_is_valid(.))
-
-trainexit <- st_read(dsn = 'data/geospatial',
-                     layer = 'Train_Station_Exit_Layer')
-
-Business <- st_read(dsn = 'data/geospatial',
-            layer = 'Business')
-
-Entertainment <- st_read(dsn = 'data/geospatial',
-            layer = 'entertn')
-
-FoodBev <- st_read(dsn = 'data/geospatial',
-            layer = 'F&B')
-
-FinServ <- st_read(dsn = 'data/geospatial',
-            layer = 'FinServ')
-
-Leisure <- st_read(dsn = 'data/geospatial',
-            layer = 'Liesure&Recreation')
-
-Retails <- st_read(dsn = 'data/geospatial',
-            layer = 'Retails')
-
-```
-
-To get a better grasp of the busstop data frame, *glimpse()* function can be used.
-
-::: callout-note:
-The data type for each column can be seen as well as some of their values. For sf data frames, there is a geometry column (POINT type) which contains the location information for each polygon.
-:::
-
-```{r}
 glimpse(busstop)
 ```
 
-Additionally, busstop can be visualized in order to spot any anomaly. This can be done using the *qtm()* function in the **tmap** package for quick plotting.
+Additionally, busstop can be visualized in order to spot any anomaly. This can be done using the *tm_shape()* function in the **tmap** package for quick plotting.
+
+::: callout-note
+A separate *tm_shape()* argument can be used to add the mpsz object as a layer on which the bus stops can be visualized. This will allow for the contextualization of bus stop locations on Singapore map.
+:::
 
 ```{r}
 tm_shape(mpsz)+
-  tm_polygons()+
+  tm_polygons(col = 'white')+
   tm_shape(busstop)+
-  tm_dots()
+  tm_dots(col = 'red')
 ```
 
 The visualization shows us that there are four bus stops in Malaysia. Let's remove them so that only bus stops in Singapore will be considered. This is because these special bus stops might exhibit different behaviors due to their different context from the rest of the bus stops in Singapore.
 
 *filter()* can be used in conjunction with a dplyr step to remove these bus stops.
 
-`{r} busstop <- busstop %>%   filter(!BUS_STOP_N %in% c('46609','47701', '46211', '46219', '46239'))}`
+```{r}
+busstop <- busstop %>%   filter(!BUS_STOP_N %in% c('46609','47701', '46211', '46219', '46239'))
+```
 
-*qtm()* can be used again to check that the bus stops have been removed.
+*tm_shape()* can be used again to check that the bus stops have been removed.
+
+```{r}
+tm_shape(mpsz)+
+  tm_polygons(col = 'white')+
+  tm_shape(busstop)+
+  tm_dots(col = 'red')
+```
+
+#### Entertainment
 
 A similar procedures can be done to glimpse and map the information in the other sf data frames.
 
 ```{r}
-glimpse(Business)
+Entertainment <- st_read(dsn = 'data/geospatial',
+            layer = 'entertn')
 
-tm_shape(mpsz)+
-  tm_polygons()+
-  tm_shape(Business)+
-  tm_dots()
-```
-
-Description
-
-```{r}
 glimpse(Entertainment)
+```
 
+As can be seen, venues such as galleries, theatres, and cinemas are included in the Entertainment data frame. This sf data frame has already been projected to 'SVY21 / Singapore TM' and does not need further transformation.
+
+```{r}
 tm_shape(mpsz)+
-  tm_polygons()+
+  tm_polygons(col = 'white')+
   tm_shape(Entertainment)+
-  tm_dots()
+  tm_dots(col = 'red')
 ```
 
-Description
+#### Food and Beverage (F&B)
 
 ```{r}
-glimpse(FinServ)
+FoodBev <- st_read(dsn = 'data/geospatial',
+            layer = 'F&B')
 
-tm_shape(mpsz)+
-  tm_polygons()+
-  tm_shape(FinServ)+
-  tm_dots()
-```
-
-```{r}
 glimpse(FoodBev)
+```
 
+As can be seen, venues such as pubs, restaurants, and cafes are included in the FoodBev data frame. This sf data frame has already been projected to 'SVY21 / Singapore TM' and does not need further transformation.
+
+```{r}
 tm_shape(mpsz)+
-  tm_polygons()+
+  tm_polygons(col = 'white')+
   tm_shape(FoodBev)+
-  tm_dots()
+  tm_dots(col = 'red')
 ```
 
+#### Financial Services
+
 ```{r}
+FinServ <- st_read(dsn = 'data/geospatial',
+            layer = 'FinServ')
+
+glimpse(FinServ)
+```
+
+As can be seen, venues such as bank branches, moneychangers, and ATMs are included in the FinServ data frame. This sf data frame has already been projected to 'SVY21 / Singapore TM' and does not need further transformation.
+
+```{r}
+tm_shape(mpsz)+
+  tm_polygons(col = 'white')+
+  tm_shape(FinServ)+
+  tm_dots(col = 'red')
+```
+
+#### Leisure
+
+```{r}
+Leisure <- st_read(dsn = 'data/geospatial',
+            layer = 'Liesure&Recreation')
+
 glimpse(Leisure)
-
-tm_shape(mpsz)+
-  tm_polygons()+
-  tm_shape(Leisure)+
-  tm_dots()
 ```
 
-Description (a lot of columns, possible to only keep the one we need)
+As can be seen, venues such as museums, sport activities, and parks are included in the Leisure data frame. This sf data frame has already been projected to 'SVY21 / Singapore TM' and does not need further transformation. However, this data frame contains too many variables which might not be used. In order to standardize it to other data frames, the *select()* function can be used.
+
+::: callout-note
+The Leisure data frame contains a variable named "ST_NAME" which is the street name of the venue. This can be renamed to "POI_ST_NAM" to standardize it to other data frames. "POI_ST_NAM" refers to the street name of the point polygon, which might differ slightly to "ST_NAME", but not meaningfully so.
+
+*rename()* can be used to perform this operation.
+:::
 
 ```{r}
+Leisure <- Leisure %>%
+  select(POI_NAME, POI_ST_NUM, ST_NAME, geometry) %>%
+  rename(POI_ST_NAM = ST_NAME)
+
+glimpse(Leisure)
+```
+
+```{r}
+tm_shape(mpsz)+
+  tm_polygons(col = 'white')+
+  tm_shape(Leisure)+
+  tm_dots(col = 'red')
+```
+
+#### Retails
+
+```{r}
+Retails <- st_read(dsn = 'data/geospatial',
+            layer = 'Retails')
+
 glimpse(Retails)
+```
+
+As can be seen, venues such as bank pharmacy, gift shops, and other general and specialized stores are included in the Retails data frame. This sf data frame has already been projected to 'SVY21 / Singapore TM' and does not need further transformation.
+
+```{r}
+tm_shape(mpsz)+
+  tm_polygons(col = 'white')+
+  tm_shape(Retails)+
+  tm_dots(col = 'red')
+```
+
+#### Train Station and Station Exits
+
+```{r}
+trainstation <- st_read(dsn = 'data/geospatial',
+                        layer = 'RapidTransitSystemStation')
+# trainstation <- trainstation %>%
+#   filter(st_is_valid(.))
+
+glimpse(trainstation)
+```
+
+As can be seen, trainstation data frame contains the that type of stations, their names, and their geometry in polygon shape. However, there is a warning message that there are non-closed ring, which indicates that some polygons are not whole in that their start point and their end point are not the same. This can be addressed by fixing the non-closed polygon using *st_make_valid()* or by filtering them out of the data frame using *st_is_valid()* and *filter()*. For this study, These polygons will be removed as contextual information on why they are non-closed is missing.
+
+Additionally, the projected CRS is SVY21, and requires transformation to SVY21/Singapore TM using *st_transform()*.
+
+```{r}
+trainstation <- trainstation %>%
+  filter(st_is_valid(.)) %>%
+  st_transform(crs = 3414)
+
+glimpse(trainstation)
+
+st_crs(trainstation)
+```
+
+After the transformation, 3 features have been removed and the projected CRS is now SVY21/Singapore TM.
+
+Before visualizing the trainstation, the train exit points can be imported so that they can be visualized together due to their inherently connected nature.
+
+```{r}
+trainexit <- st_read(dsn = 'data/geospatial',
+                     layer = 'Train_Station_Exit_Layer')
+
+glimpse(trainexit)
+```
+
+The train exit data frame consists of each MRT and LRT stations and the point geometry of all of their exits. However, its projected CRS is SVY21, which should be transformed into SVY21/Singapore TM using *st_transform().*
+
+```{r}
+trainexit <- trainexit %>%
+  st_transform(crs = 3414)
+
+st_crs(trainexit)
+```
+
+Now, both trainstation and trainexit can be visualized together using the **tmap** package.
+
+::: callout-note
+Due to the smaller size of the train station polygons, it will be difficult to see them on a static map. *tmap_mode('view')* can be used to create an interactive map which would allow for zoom.
+
+Some helpful functions can be used to create a better interactive map:
+
+-   tmap_options(check.and.fix = TRUE): Even though our data frames do not contain any broken polygons, this argument can still be added in order to close any non-closed polygons.
+
+-   tm_view(set.zoom.limits = c(11,14)): This option is added to limit the zoom level of the map, preventing user from zooming in too close or zooming out too far. 11 indicates the minimum zoom level while 14 indicates the maximum zoom level.
+
+-   tmap_mode('plot'): This function is added to return the tmap_mode to plotting mode for later code chunks. This will ensure that the next code chunk is the lighter, static plot rather than an interactive plot by default.
+:::
+
+```{r}
+tmap_options(check.and.fix = TRUE)
+tmap_mode('view')
 
 tm_shape(mpsz)+
-  tm_polygons()+
-  tm_shape(Retails)+
-  tm_dots()
+  tm_polygons(alpha = 0.5)+
+  tm_shape(trainstation)+
+  tm_fill(col = 'blue',
+          id = 'STN_NAM_DE')+
+  tm_shape(trainexit)+
+  tm_dots(col = 'red',
+          id = 'exit_code')+
+  tm_view(set.zoom.limits = c(11,16))
+
+tmap_mode('plot')
+```
+
+There are two immediate issues which emerge by looking at the visualization:
+
+1.  The trainstation data frame contains the locations of train depots such as the Mandai Depot and the Ulu Pandan Depot, which are not accessible to commuters.
+2.  The trainstation data frame contains the locations of train stations which are not in operation such as the Bukit Brown MRT Station and the Mount Pleasant MRT Station, and, therefore, are not accessible to commuters and have no exit.
+
+It is possible to resolve both of these issues by only retaining the train stations which are listed in the trainexit data frame using the %in% argument and *filter().*
+
+```{r}
+trainstation <- trainstation %>%
+  filter(trainstation$STN_NAM_DE %in% trainexit$stn_name)
+```
+
+Eighteen stations have been removed from the trainstation dataset, the visualization can be recreated to confirm whether only commuter-accessible train station remains.
+
+```{r}
+tmap_options(check.and.fix = TRUE)
+tmap_mode('view')
+
+tm_shape(mpsz)+
+  tm_polygons(alpha = 0.5)+
+  tm_shape(trainstation)+
+  tm_fill(col = 'blue',
+          id = 'STN_NAM_DE')+
+  tm_shape(trainexit)+
+  tm_dots(col = 'red',
+          id = 'exit_code')+
+  tm_view(set.zoom.limits = c(11,16))
 ```
 
 ### Importing Aspatial Data
+
+#### Passenger
 
 The *read_csv()* function of readr can be used to import the origin_destination_bus_202309 CSV file into the R environment as a data frame.
 
@@ -214,6 +381,8 @@ We can use *head()* to check the data type of the passenger data frame.
 head(passenger)
 ```
 
+#### Housing Development Board (HDB)
+
 Similarly, the hdb.csv data can be imported using similar methods
 
 ```{r}
@@ -222,7 +391,9 @@ hdb <- read_csv('data/aspatial/hdb.csv')
 head(hdb)
 ```
 
-Unlike passenger, however, the hdb csv file has a column which indicates the longitude and latitude of the each HDB block. This means that it can be visualized using *mapview()* of the **mapview** package.
+As can be seen, the block number, street name, year completed, and many other types of information are included in the hdb data frame for each hdb block.
+
+Unlike passenger, however, the hdb csv file has a column which indicates the longitude and latitude of the each HDB block. This means that it can be visualized using *tm_shape()*.
 
 ```{r}
 hdb_sf <- hdb %>%
@@ -230,7 +401,10 @@ hdb_sf <- hdb %>%
            crs = 4326) %>%
   st_transform(3414)
 
-qtm(hdb_sf)
+tm_shape(mpsz)+
+  tm_polygons(col = 'white')+
+  tm_shape(hdb_sf)+
+  tm_dots(col = 'red')
 ```
 
 ## Data Preparation
@@ -239,66 +413,58 @@ qtm(hdb_sf)
 
 #### Filtering the passenger Data Set for Desired Time Frames
 
-For the purpose of this study, the passenger data set needs to be filtered to only contain trips falling within one of the following time frames:
+For the purpose of this study, the passenger data set needs to be filtered to only contain trips falling within one of the desired time frame: Weekend/Holiday Morning Peak 11am - 2pm (11:00 - 14:00).
 
-| Peak hour period             | Bus tap on time |
-|------------------------------|-----------------|
-| Weekday morning peak         | 6am to 9am      |
-| Weekday afternoon peak       | 5pm to 8pm      |
-| Weekend/holiday morning peak | 11am to 2pm     |
-| Weekend/holiday evening peak | 4pm to 7pm      |
-
-This can be accomplished using the *filter()* function and the dplyr steps. We can create four separate data frames to store the four different time frames
+This can be accomplished using the *filter()* function and the dplyr pipe (%\>%).
 
 ```{r}
-# Weekday morning peak 6am - 9am 
-passenger_wd_69 <- passenger %>%   filter(DAY_TYPE == 'WEEKDAY') %>%   filter(TIME_PER_HOUR >= 6 & TIME_PER_HOUR <= 9)  
-
-# Weekday afternoon peak 5pm - 8pm (17:00 - 20:00) 
-passenger_wd_1720 <- passenger %>%   filter(DAY_TYPE == 'WEEKDAY') %>%   filter(TIME_PER_HOUR >= 17 & TIME_PER_HOUR <= 20)  
-
-# Weekend/holiday morning peak 11am - 2pm (11:00 - 14:00) 
-passenger_weh_1114 <- passenger %>%   filter(DAY_TYPE == 'WEEKENDS/HOLIDAY') %>%   filter(TIME_PER_HOUR >= 11 & TIME_PER_HOUR <= 14)  
-
-# Weekend/holiday evening peak 4pm - 7pm (16:00 - 19:00) 
-passenger_weh_1619 <- passenger %>%   filter(DAY_TYPE == 'WEEKENDS/HOLIDAY') %>%   filter(TIME_PER_HOUR >= 16 & TIME_PER_HOUR <= 19)
+passenger<- passenger %>%   filter(DAY_TYPE == 'WEEKENDS/HOLIDAY') %>%   filter(TIME_PER_HOUR >= 11 & TIME_PER_HOUR <= 14)  
 ```
 
-After the different trips have been categorized into their separate data frames, the total number trips for each origin bus stop can be tallied into a single statistic for the study period. This can be accomplished using the *summarize()* function. The example below shows this operation using passenger_wd_69.
+Additionally, the passenger data set should also be filtered for those bus stops which have been filtered out of the busstop data frame due to them being in Malaysia.
+
+::: callout-warning
+This step is a limitation of this study as there would be major transit flow between Singapore and Johor Bahru during the weekend and holiday. However, as there is no information on the attractiveness of Malaysia (number of retail locations, F&B, etc.), it is not appropriate to include them in this analysis.
+:::
+
+```{r}
+passenger <- passenger %>%
+  filter(!(ORIGIN_PT_CODE %in% c('46609','47701', '46211', '46219', '46239'))) %>%
+  filter(!(DESTINATION_PT_CODE %in% c('46609','47701', '46211', '46219', '46239')))
+```
+
+#### Tallying Number of Trips by Origin and Destination Bus Stops
+
+After the different trips have been categorized into their separate data frames, the total number trips for each origin bus stop can be tallied into a single statistic for the study period. This can be accomplished using the *summarize()* function.
 
 ::: callout-note
 The *group_by()* function is used to instruct R to conduct operations based on the groups created by group_by(). In this case, the summary operations will be done based on the origin bus stop codes.
 :::
 
 ```{r}
-# Tallying the trips by origin bus stop for Weekday morning peak 6am - 9am
-passenger_wd_69_tallied <- passenger_wd_69 %>%
+passenger_tallied <- passenger %>%
   group_by(ORIGIN_PT_CODE, DESTINATION_PT_CODE) %>%
   summarise(TRIPS = sum(TOTAL_TRIPS))
 
 
-passenger_wd_69_tallied
+passenger_tallied
 ```
 
-As can be seen, the newly created data frame consists only of the total trip numbers for each origin bus stop by their destination. This can be repeated for the other time frames.
+It is possible to visualize the distribution of trips by using creating a histogram using the *geom_histogram()* of the **ggplot2** package.
 
 ```{r}
-
-# Tallying the trips by origin bus stop for Weekday afternoon peak 5pm - 8pm (17:00 - 20:00)
-passenger_wd_1720_tallied <- passenger_wd_1720 %>%
-  group_by(ORIGIN_PT_CODE, DESTINATION_PT_CODE) %>%
-  summarise(TRIPS = sum(TOTAL_TRIPS))
-
-# Tallying the trips by origin bus stop for Weekend/holiday morning peak 11am - 2pm (11:00 - 14:00)
-passenger_weh_1114_tallied <- passenger_weh_1114 %>%
-  group_by(ORIGIN_PT_CODE, DESTINATION_PT_CODE) %>%
-  summarise(TRIPS = sum(TOTAL_TRIPS))
-
-# Tallying the trips by origin bus stop for Weekend/holiday evening peak 4pm - 7pm (16:00 - 19:00)
-passenger_weh_1619_tallied <- passenger_weh_1619 %>%
-  group_by(ORIGIN_PT_CODE, DESTINATION_PT_CODE) %>%
-  summarise(TRIPS = sum(TOTAL_TRIPS))
+ggplot(passenger_tallied, aes(x=TRIPS))+
+  geom_histogram()+
+  theme_classic()
 ```
+
+Let's confirm the distribution by checking the descriptive statistics of the number of trips based on the origin and destination bus stop. This can be done using the *summary()* function.
+
+```{r}
+summary(passenger_tallied$TRIPS)
+```
+
+It can be seen that the distribution of trip is heavily skewed with large outliers. Many flows (origin-destination pair) have very few trips, while some outlier flows have a very large number of trips. This is an indication that there might be spatial autocorrelation, that the number of trips depend on the location of the bus stops. However, there might also be spatial interaction, with certain propulsive and attractiveness factors influencing the number of trips between the origin and destination.
 
 ### Wrangling Geospatial Data
 
@@ -328,10 +494,14 @@ area_honeycomb_grid = st_make_grid(busstop, cellsize = c(750,750), what = 'polyg
 area_honeycomb_grid
 ```
 
-The area_honeycomb_grid contains 136906 features of the same Projected CRS as the busstop data frame. If the *plot()* function is used, the hexagon grid will be displayed. However, this grid contains no information and might be too small to discern the individual cell.
+The area_honeycomb_grid contains 136906 features of the same Projected CRS as the busstop data frame. If the *plot()* function is used, the hexagon grid will be displayed. It will show a large hexagon grid overlaid over the map of Singapore.
 
 ```{r}
-#qtm(area_honeycomb_grid)
+tmap_mode('plot')
+tm_shape(mpsz)+
+  tm_polygons()+
+  tm_shape(area_honeycomb_grid)+
+  tm_polygons()
 ```
 
 The area_honey_comb needs to be converted to a sf data frame for further manipulation using *st_sf()*. Additionally, we can assign a unique id to each of the hexagon cell in area_honey_comb using *mutate().*
@@ -366,7 +536,9 @@ At this point, the hexagon grid of bus stop can be drawn onto a map of Singapore
 ```{r}
 tmap_mode('plot')
 
-bushexmap <- tm_shape(honeycomb_count)+
+bushexmap <-   tm_shape(mpsz)+
+  tm_polygons(col = 'white')+
+  tm_shape(honeycomb_count)+
   tm_fill(
     col = "n_busstop",
     palette = "Blues",
@@ -383,7 +555,6 @@ bushexmap <- tm_shape(honeycomb_count)+
     )
   ) +
   tm_borders(col = "grey40", lwd = 0.7)+
-  tm_basemap(server = c('Esri.WorldGrayCanvas'))+
   tm_layout(main.title = 'Distribution of Bus Stops', main.title.position = 'center')
 
 bushexmap
@@ -395,83 +566,370 @@ From the illustration, we can see that each cell might contain up to 14 bus stop
 ggplot(honeycomb_count, aes(x=n_busstop))+   geom_bar()+   theme_classic()+   geom_text(aes(label = after_stat(count)), stat = "count", vjust = -0.5, colour = "black")
 ```
 
-As can be seen, the majority of cells contain 1-6 bus stops with only 285 cells containing 7 or more bus stops. This shows that the cells adequately capture solitary bus stop, as well as pairs of bus stops (bus stops which are opposite each other, served by the same bus services).
+As can be seen, the majority of cells contain 1-9 bus stops with only 178 cells containing 10 or more bus stops. This shows that the cells adequately capture solitary bus stop, as well as pairs of bus stops (bus stops which are opposite each other, served by the same bus services).
 
 ### Combining Aspatial and Geospatial Data
 
-In order to conduct geospatial analysis, a data frame which contains the hexagon cells as well as the number of bus trips for each cells must be created. This can be done using the *left_join()* function, which will keep all the rows in the left data frame.
+In order to conduct geospatial analysis, a data frame which contains the hexagon cells as well as the number of bus trips for each cells must be created. This must be done in multiple steps
+
+#### Combining the Origin - Destination Bus Stop Data Frame with Bus Stop Geometry Data Frame
+
+This can be done using the *inner_join()* function, which will keep all the rows that is in both data frame. By using this argument, it is possible to retain only bus stops which are present in both data frames, eliminating any bus stops which might be present in one but not the other. By
 
 ::: callout-note
 There are important arguments which can be used to create a cleaner combined data frame.
 
--   by = join_by(BUS_STOP_N == ORIGIN_PT_CODE)): Indicate the column by which the two data frames can be matched and joined. In this case, the bus stop code will be used.
+-   by = join_by(ORIGIN_PT_CODE == BUS_STOP_N)): Indicate the column by which the two data frames can be matched and joined. In this case, the origin bus stop code will be used.
 
--   select(1,4,5,6): Indicate the index number of the columns to be kept in the final data frame. Only the bus stop number (column 1), destination bus stop (column 4), total number of trips (column 5), and geometry (column 6) will be kept.
+-   by = join_by(DESTINATION_PT_CODE == BUS_STOP_N)): Indicate the column by which the two data frames can be matched and joined. In this case, the destination bus stop code will be used.
+
+-   select(1,2,3,6): Indicate the index number of the columns to be kept in the final data frame. Only the bus stop number (column 1), destination bus stop (column 2), total number of trips (column 3), and geometry (column 6) will be kept.
 
 -   replace(is.na(.),0): Replace all value of NA with 0. This is to ensure that bus stop with no trips in a given time frame is accurately tallied at 0.
 :::
 
-For Origin Destination Bus Stop
-
 ```{r}
-# Weekday morning peak 6am - 9am
-# passenger_wd_69_combined <- right_join(busstop, passenger_wd_69_tallied, by = join_by(BUS_STOP_N == ORIGIN_PT_CODE)) %>%
-#   select(1,4,5, 6)%>%
-#   rename(ORIG_PT_CODE = BUS_STOP_N,
-#          DEST_PT_CODE = DESTINATION_PT_CODE) %>%
-#   replace(is.na(.),0)
-
-# Weekday afternoon peak 5pm - 8pm (17:00 - 20:00)
-# passenger_wd_1720_combined <- right_join(busstop, passenger_wd_1720_tallied, by = join_by(BUS_STOP_N == ORIGIN_PT_CODE))%>%
-#   select(1,4,5, 6)%>%
-#   rename(ORIG_PT_CODE = BUS_STOP_N,
-#          DEST_PT_CODE = DESTINATION_PT_CODE) %>%
-#   replace(is.na(.),0)
-
-# Weekend/holiday morning peak 11am - 2pm (11:00 - 14:00)
-# passenger_weh_1114_combined <- right_join(busstop, passenger_weh_1114_tallied, by = join_by(BUS_STOP_N == ORIGIN_PT_CODE))%>%
-#   select(1,4,5, 6)%>%
-#   rename(ORIG_PT_CODE = BUS_STOP_N,
-#          DEST_PT_CODE = DESTINATION_PT_CODE) %>%
-#   replace(is.na(.),0)
-# 
-# # Weekend/holiday evening peak 4pm - 7pm (16:00 - 19:00)
-# passenger_weh_1619_combined <- right_join(busstop, passenger_weh_1619_tallied, by = join_by(BUS_STOP_N == ORIGIN_PT_CODE))%>%
-#   select(1,4,5, 6)%>%
-#   rename(ORIG_PT_CODE = BUS_STOP_N,
-#          DEST_PT_CODE = DESTINATION_PT_CODE) %>%
-#   replace(is.na(.),0)
-```
-
-For Both
-
-```{r}
-orig_69 <- left_join(passenger_wd_69_tallied, busstop,
+orig <- inner_join(passenger_tallied, busstop,
                        by = join_by(ORIGIN_PT_CODE == BUS_STOP_N)) %>%
   select(1,2,3,6)%>%
   st_as_sf()
 
-destin_69 <- left_join(passenger_wd_69_tallied, busstop,
+destin <- inner_join(passenger_tallied, busstop,
                    by = join_by(DESTINATION_PT_CODE == BUS_STOP_N)) %>%
   select(1,2,3,6) %>%
   st_as_sf()
-
-orig_69_hex <- st_join(honeycomb_count, orig_69, by = st_within)%>%
-  select(1,3,4,5,6) %>%
-  filter(grid_id != 50) %>%
-  rename(ORIG_GRID = grid_id,
-         ORIG_GEOM = area_honeycomb_grid) %>%
-  as.data.frame()
-
-destin_69_hex <- st_join(honeycomb_count, destin_69, by = st_within)%>%
-  select(1,3,4,5,6) %>%
-  filter(grid_id != 50) %>%
-  rename(DESTIN_GRID = grid_id,
-         DESTIN_GEOM = area_honeycomb_grid) %>%
-  as.data.frame()
-
-combined_69_hex <- inner_join(orig_69_hex, destin_69_hex, by = join_by (ORIGIN_PT_CODE == ORIGIN_PT_CODE,DESTINATION_PT_CODE == DESTINATION_PT_CODE)) %>%
-  select(ORIG_GRID, DESTIN_GRID, TRIPS.x)%>%
-  group_by(ORIG_GRID, DESTIN_GRID) %>%
-  summarise(TOTAL_TRIP = sum(TRIPS.x))
 ```
+
+Now, there are two separate data frames, one with the point geometry of the origin bus stop, and one with the point geometry of the destination bus stop. However, since the analysis layer consists of different polygons with unique grid_id. It is necessary to aggregate the number of trips to their origin and destination hexagon cells.
+
+This can be performed in multiple steps.
+
+#### Identifying the Origin and Destination Hexagon Cells' Grid ID
+
+In order to aggregate the origin and destination bus stops into their hexagon cells, *st_join()* can be used respectively for each data frame.
+
+::: callout-note
+The by argument in *st_join()* can be passed the function *st_within* to specify that we would like to join the two data frames where the geometry in the latter is within the geometry of the former. In this case, it would mean that two rows will be joined where the bus stop lies within a particular polygon.
+
+*st_drop_geometry()* is being used to drop the spatial feature of each data frame, this would allow for the combination of the two data frames later using a regular join function.
+:::
+
+```{r}
+orig_hex <- st_join(honeycomb_count, orig, by = st_within)%>%
+  select(1,3,4,5,6) %>%
+  filter(grid_id != 50) %>%
+  rename(ORIG_ID = grid_id,
+         ORIG_GEOM = area_honeycomb_grid) %>%
+  st_drop_geometry()%>%
+  na.omit()
+
+destin_hex <- st_join(honeycomb_count, destin, by = st_within)%>%
+  select(1,3,4,5,6) %>%
+  filter(grid_id != 50) %>%
+  rename(DESTIN_ID = grid_id,
+         DESTIN_GEOM = area_honeycomb_grid) %>%
+  st_drop_geometry() %>%
+  na.omit()
+```
+
+Now that there are two data frames, each almost identical to the other with the exception of a column containing the grid id of the origin and destination bus stop respectively. Let's take a look using *head().*
+
+```{r}
+head(orig_hex)
+
+head(destin_hex)
+```
+
+#### Creating a Origin - Destination Hexagon Cells' Grid ID Data Frame
+
+The next step is to create a combined data frame which has both the origin and destination hexagon cell grid id and tally the total number of trips for each pair. This can be done using *inner_join()* and *summarise().*
+
+```{r}
+combined_hex <- inner_join(orig_hex, destin_hex, by = join_by (ORIGIN_PT_CODE == ORIGIN_PT_CODE,DESTINATION_PT_CODE == DESTINATION_PT_CODE)) %>%
+  select(ORIG_ID, DESTIN_ID, TRIPS.x) %>%
+  group_by(ORIG_ID, DESTIN_ID) %>%
+  summarise(TOTAL_TRIP = sum(TRIPS.x))
+
+head(combined_hex)
+```
+
+Next, it is possible to check for duplicate record and proceed to remove them.
+
+```{r}
+duplicate <- combined_hex %>%
+  group_by_all() %>%
+  filter(n()>1) %>%
+  ungroup()
+
+combined_hex <- unique(combined_hex)
+
+head(combined_hex)
+```
+
+Before moving on, it is important to check if there are any intra-zonal trips in the data frame. This is because these trips will not be included in the spatial interaction model and should be filtered out.
+
+```{r}
+combined_hex %>%
+  filter(ORIG_ID == DESTIN_ID)
+```
+
+As can be seen, there are 582 intra-zonal trip pair. *filter()* can be used to remove them.
+
+```{r}
+combined_hex <- combined_hex %>%
+  filter(!(ORIG_ID == DESTIN_ID))
+```
+
+#### Creating a Origin-Destination Matrix
+
+Aside from having the total number of trips between each origin and destination hexagon, an origin-destination matrix (O-D Matrix) is also required. This matrix will display the geographical distance between the centroid of each hexagon cell in the grid. To create a OD-Matrix will require multiple steps.
+
+First, the hexagon cells object (honeycomb_count should be stored as a SpatialPolygonDataFrame object.
+
+```{r}
+honeycomb_count_filtered <- honeycomb_count %>%   
+  select(1,2)  
+
+honeycomb_count_filtered <- as(honeycomb_count_filtered, 'Spatial')
+```
+
+Next, the distance between each hexagon cell can be calculated using the *spDists()* function of the **sp** package.
+
+```{r}
+dists <- sp::spDists(honeycomb_count_filtered, longlat = FALSE)
+
+dists[1:5,1:5]
+```
+
+As can be seen, the dists matrix consists of the distance between each hexagon cell. For example, the hexagon cell in position 2 is 750 distance unit away from the hexagon cell in position 1. However, this would not be conducive to analysis and it would be preferable to store the column and row ids as the grid ID of the hexagon cells.
+
+```{r}
+grid_id <- honeycomb_count$grid_id  
+colnames(dists) <- paste0(grid_id) 
+rownames(dists) <- paste0(grid_id)  
+dists[1:5,1:5]
+```
+
+It is possible to see now the distance between each hexagon cell using their cell id. As the matrix is a in the wide format, *melt()* of the **reshaper** package can be used to transform it into the long format for easier analysis.
+
+```{r}
+distPair <- melt(dists) %>%   
+  rename(dists = value)  
+
+distPair <- distPair %>%   
+  rename(ORIG_ID = Var1, DESTIN_ID = Var2)
+
+head(distPair)
+```
+
+Lastly, what to do with intra-zonal travel must be decided. For example, as can be seen above, the travel distance between grid_id 21 and 21 is 0. As the model will not be calibrated to handle intra-zonal trips, they will be excluded from the final data frame. For now, it is possible to filter them out of the origin-destination matrix using *filter().*
+
+```{r}
+distPair <- distPair %>%
+  filter(!(dists == 0))
+
+head(distPair)
+```
+
+### Preparing Final Data Frame for Spatial Interaction Modelling
+
+#### Tabulating Features
+
+In order to define the propulsive and attractive factors of the origin and destination cells, it is important to tabulate the number of different features/venues in the different cells in the aggregate level. For example, the aggregate number of Retail locations in a cell must be tabulated. The tabulation will be appended to the honeycomb_count data frame in order to have the count for each grid id, before joining it to other data frame later on. This can be accomplished using *st_intersects()* and *lengths().*
+
+```{r}
+flow_data <- honeycomb_count %>%
+  rename(geometry = area_honeycomb_grid)
+
+flow_data$Entertainment <- lengths(st_intersects(flow_data, Entertainment))
+
+flow_data$FoodBev <- lengths(st_intersects(flow_data, FoodBev))
+
+flow_data$Retails <- lengths(st_intersects(flow_data, Retails))
+
+flow_data$FinServ <- lengths(st_intersects(flow_data, FinServ))
+
+flow_data$Leisure <- lengths(st_intersects(flow_data, Leisure))
+```
+
+Before the number of train stations is tabulated, it is important to consider how a train station is determined to be within a zone. Due to the polygon nature of train stations, they might stretch beyond two hexagon cells. This can be visualized using **tmap.**
+
+```{r}
+tmap_mode('view')
+tm_shape(honeycomb_count)+
+  tm_fill(alpha = 0.3)+
+  tm_borders(alpha = 0.5)+
+  tm_shape(trainstation)+
+  tm_fill(col = 'blue',
+          id = 'STN_NAM_DE')+
+  tm_shape(trainexit)+
+  tm_dots(col = 'red',
+          id = 'exit_code')+
+  tm_view(set.zoom.limits = c(11,16))+
+  tm_layout(title = 'Train Station Location and Hexagon Cells', title.position = c('right','top'))
+```
+
+Though many examples can be found, one is highlighted in the image below. The One-North MRT station stretches from hexagon cell with grid id 974 to hexagon cell with grid id 992.
+
+![One-North MRT Station Between Two Hexagons](train.png){fig-alt="One-North MRT Station Between Two Hexagons" fig-align="center"}
+
+It would be more appropriate to consider that both of these cells contain One-North MRT station as practically speaking, residents in both area would have access to it and would use it. The location of exits, albeit important, would not be a good indicator as residents in cells which do not contain a station exit but do contain a train station can walk to the exit located at a negligible distance away, as no train station is sufficiently large to make this an unfeasible option.
+
+The tabulation can be accomplished using *st_intersects()* and *st_lengths().*
+
+::: callout-warning
+A major limitation of this study is the failure to consider train stations which might not be within any hexagon cell but are within a certain proximity of of a cell. For example, in the image below, residents of cell 992 could practically consider walking to Kent Ridge MRT station right below instead of using One-North MRT. By this definition, cell 992 would actually have 2 train stations.
+
+However, due to technical limitations, this study would not include this approach.
+:::
+
+```{r}
+flow_data$trainstation <- lengths(st_intersects(flow_data, trainstation))
+
+glimpse(flow_data)
+```
+
+#### Visualizing Features Distribution
+
+Let's visualize the distribution of the different features in each cell.
+
+::: callout-note
+The style argument of tm_fill is passed with "jenks" in order for **tmap** to "divides the features into classes whose boundaries are where there are relatively big differences in the data values" ([Reference](https://pro.arcgis.com/en/pro-app/latest/help/mapping/layer-properties/data-classification-methods.htm)), which allow for better visualization of skewed values with little variation.
+:::
+
+```{r}
+tmap_mode('plot')
+
+ent <- tm_shape(mpsz)+
+  tm_polygons(col='white')+
+  tm_shape(flow_data)+
+  tm_fill(col = 'Entertainment',
+          style = 'jenks',
+          palette = 'Reds',
+          alpha = 0.7)+
+  tm_borders(alpha = 0.5)+
+  tm_layout(main.title = 'Entertainment Distribution', main.title.position = 'center', main.title.size = 1.5)
+
+ent
+
+leis <- tm_shape(mpsz)+
+  tm_polygons(col='white')+
+  tm_shape(flow_data)+
+  tm_fill(col = 'Leisure',
+          style = 'jenks',
+          palette = 'Reds',
+          alpha = 0.7)+
+  tm_borders(alpha = 0.5)+
+  tm_layout(main.title = 'Leisure Distribution', main.title.position = 'center', main.title.size = 1.5)
+
+leis
+
+fin <- tm_shape(mpsz)+
+  tm_polygons(col='white')+
+  tm_shape(flow_data)+
+  tm_fill(col = 'FinServ',
+          style = 'jenks',
+          palette = 'Reds',
+          alpha = 0.7)+
+  tm_borders(alpha = 0.5)+
+  tm_layout(main.title = 'Financial Service Distribution', main.title.position = 'center', main.title.size = 1.5)
+
+fin
+
+ret <- tm_shape(mpsz)+
+  tm_polygons(col='white')+
+  tm_shape(flow_data)+
+  tm_fill(col = 'Retails',
+          style = 'jenks',
+          palette = 'Reds',
+          alpha = 0.7)+
+  tm_borders(alpha = 0.5)+
+  tm_layout(main.title = 'Retails Distribution', main.title.position = 'center', main.title.size = 1.5)
+
+ret
+
+fb <- tm_shape(mpsz)+
+  tm_polygons(col='white')+
+  tm_shape(flow_data)+
+  tm_fill(col = 'FoodBev',
+          style = 'jenks',
+          palette = 'Reds',
+          alpha = 0.7)+
+  tm_borders(alpha = 0.5)+
+  tm_layout(main.title = 'F&B Distribution', main.title.position = 'center', main.title.size = 1.5)
+
+fb
+
+train <- tm_shape(mpsz)+
+  tm_polygons(col='white')+
+  tm_shape(flow_data)+
+  tm_fill(col = 'trainstation',
+          style = 'jenks',
+          palette = 'Reds',
+          alpha = 0.7)+
+  tm_borders(alpha = 0.5)+
+  tm_layout(main.title = 'Train Station Distribution', main.title.position = 'center', main.title.size = 1.5)
+
+train
+
+```
+
+Even though there are wide variation in the values of the different type of venues, one common feature among the graphs is that the highest concentration tend to be around the Downtown area, also known as the [Downtown Core](https://lkyspp.nus.edu.sg/docs/default-source/case-studies/marina-bay_case-study.pdf?sfvrsn=8634960b_2), of Singapore. Potentially, this might be a major attractive feature for the downtown flow of visitors.
+
+## Creating and Visualizing Flowline
+
+Before a spatial interaction model is created, let's create a visualization of the flow lines between the hexagon cells. The width of the flow lines will depend on the number of trips between the hexagon cells. The geometry of the flow line can be created using the *od2line()* function of the **stplanr** package.
+
+::: callout-note
+There are important arguments in *od2line:*
+
+-   flow: A data frame represeenting the origin-destination data. The first column should be the same as the first column of the data in the zones dataframe.
+
+-   zones: The origin and destination of the travels should be passed here.
+
+-   zone_code: Name of the variable in zones containing the ids of the zones.
+:::
+
+```{r}
+flowLine <- od2line(flow = combined_hex, 
+        zones = honeycomb_count,
+        zone_code = 'grid_id')
+
+head(flowLine)
+```
+
+In the flowLine object, there is a new column which contains the line string geometry connecting the origin and destination hexagon cells. Now, it can be visualized using the **tmap** package.
+
+::: callout-warning
+Due to the large number of lines (more than 60,000 entries in flowLine), it is not advisable to visualize all the lines as it will result in large processing time and an incomprehensible graphic. Therefore, only lines representing a large number of trips should be visualized. We can choose to visualize lines representing 1000 trips or more.
+:::
+
+```{r}
+
+tmap_mode('plot')
+
+tm_shape(mpsz)+
+  tm_polygons(col = 'white')+
+  tm_shape(honeycomb_count)+
+  tm_fill(alpha = 0.5)+
+  tm_borders(col='black')+
+  flowLine %>%
+  filter(TOTAL_TRIP >= 750) %>%
+  tm_shape()+
+  tm_lines(lwd = 'TOTAL_TRIP',
+           col = 'red',
+           style = 'quantile',
+           palette = 'Reds',
+           scale = c(0.1, 1, 3, 5, 7, 10),
+           n = 6,
+           alpha = 0.3)+
+  tm_layout(main.title = 'Weekdend/Holiday Morning Peak Flowline', main.title.position = 'center', scale = 0.7)
+
+
+```
+
+Though there are numerous flow lines on the map, it is possible to identify that there are major clusters on the map where many lines converge and where thicker lines can be found. These usually are the major bus interchanges where many bus stops and starts, and which are located near population centres and shopping malls. There are numerous thinner red lines in the downtown area of Singapore, showing shorter trips on lower intensity lines.
+
+By creating a Spatial Interaction Model, it would be possible to determine what are the push and pull factors between the different origin and destination cells.
+
+## Spatial Interaction Model

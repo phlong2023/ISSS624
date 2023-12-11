@@ -122,11 +122,27 @@ tm_shape(mpsz)+
   tm_dots()
 ```
 
+Create a new column to count the number of Businesses in each mpsz.
+
+```{r}
+mpsz$`business_count` <- lengths(st_intersects(mpsz, business))
+```
+
+```{r}
+summary(mpsz$business_count)
+```
+
 ## The Data
 
 ```{r}
 flow_data <- read_rds('data/rds/flow_data_tidy.rds')
 glimpse(flow_data)
+```
+
+Let's check for 0 values.
+
+```{r}
+summary(flow_data)
 ```
 
 ```{r}
