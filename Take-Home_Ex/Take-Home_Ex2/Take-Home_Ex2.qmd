@@ -1132,3 +1132,119 @@ The R-Squared value can be calculated to evaluate the model.
 ```{r}
 CalcRSquared(decSIM$data$TOTAL_TRIP, decSIM$fitted.values)
 ```
+
+#### Doubly Constrained Model
+
+The Doubly Constrained Model will remove all parameter from both the destination and origin, considering only the flows. This model recreates the interaction but do not provide any information on the propulsiveness and attractiveness of different factors (Farmer & Oshan, 2017).
+
+```{r}
+dbcSIM <- glm(TOTAL_TRIP ~
+                ORIG_ID+
+                DESTIN_ID+
+                log(dists),
+              family = poisson(link = 'log'),
+              data = final_df,
+              na.action = na.exclude)
+
+dbcSIM
+```
+
+The R-Squared value can be calculated to evaluate the model.
+
+```{r}
+CalcRSquared(dbcSIM$data$TOTAL_TRIP, dbcSIM$fitted.values)
+```
+
+#### Model Comparison
+
+The Root Mean Squared Error (RSME) of each model is a good comparison, giving a gauge of the deviation between the actual values and predicted values. The RSME can be calculated using the *compare_performance()* function of the **performance** package.
+
+```{r}
+model_list <- list(unconstrained = uncSIM,
+                   originConstrained = orcSIM,
+                   destinationConstrained = decSIM,
+                   doublyConstrained = dbcSIM)
+```
+
+```{r}
+compare_performance(model_list,
+                    metrics = 'RMSE')
+```
+
+#### Visualizing Fitted Values
+
+The fitted values can be plotted against the actual values in order to roughly gauge the appropriateness of each model.
+
+Firstly, the fitted values in each model must be extracted.
+
+```{r}
+df <- as.data.frame(uncSIM$fitted.values) %>%
+  round(digits = 0)
+```
+
+Next, we will join the values to our final data frame.
+
+```{r}
+final_df_with_fit <- final_df %>%
+  cbind(df) %>%
+  rename(uncTRIPS = "uncSIM$fitted.values")
+```
+
+These steps can be repeated for the other models.
+
+```{r}
+df <- as.data.frame(orcSIM$fitted.values) %>%
+  round(digits = 0)
+
+final_df_with_fit <- final_df_with_fit %>%
+  cbind(df) %>%
+  rename(orcTRIPS = 'orcSIM$fitted.values')
+
+
+df <- as.data.frame(decSIM$fitted.values) %>%
+  round(digits = 0)
+
+final_df_with_fit <- final_df_with_fit %>%
+  cbind(df) %>%
+  rename(decTRIPS = 'decSIM$fitted.values')
+
+
+df <- as.data.frame(dbcSIM$fitted.values) %>%
+  round(digits = 0)
+
+final_df_with_fit <- final_df_with_fit %>%
+  cbind(df) %>%
+  rename(dbcTRIPS = 'dbcSIM$fitted.values')
+```
+
+The four scatter plots of actual and predicted values can be plotted together for ease of comparison using **ggplot2.**
+
+```{r}
+unc_p <- ggplot(final_df_with_fit,
+                aes(x = uncTRIPS,
+                    y = TOTAL_TRIP))+
+  geom_point()+
+  geom_smooth(method = lm)
+
+orc_p <- ggplot(data = final_df_with_fit,
+                aes(x = orcTRIPS,
+                    y = TOTAL_TRIP)) +
+  geom_point() +
+  geom_smooth(method = lm)
+
+dec_p <- ggplot(data = final_df_with_fit,
+                aes(x = decTRIPS,
+                    y = TOTAL_TRIP)) +
+  geom_point() +
+  geom_smooth(method = lm)
+
+dbc_p <- ggplot(data = final_df_with_fit,
+                aes(x = dbcTRIPS,
+                    y = TOTAL_TRIP)) +
+  geom_point() +
+  geom_smooth(method = lm)
+
+ggarrange(unc_p, orc_p, dec_p, dbc_p,
+          ncol = 2,
+          nrow = 2)
+```
