@@ -789,6 +789,12 @@ flow_data$trainstation <- lengths(st_intersects(flow_data, trainstation))
 glimpse(flow_data)
 ```
 
+Let's consider the descriptive statistics of the variables using the *summary()* function.
+
+```{r}
+summary(flow_data)
+```
+
 #### Visualizing Features Distribution
 
 Let's visualize the distribution of the different features in each cell.
@@ -874,7 +880,25 @@ train
 
 ```
 
-Even though there are wide variation in the values of the different type of venues, one common feature among the graphs is that the highest concentration tend to be around the Downtown area, also known as the [Downtown Core](https://lkyspp.nus.edu.sg/docs/default-source/case-studies/marina-bay_case-study.pdf?sfvrsn=8634960b_2), of Singapore. Potentially, this might be a major attractive feature for the downtown flow of visitors.
+Even though there are wide variation in the values of the different type of venues, one common feature among the graphs is that the highest concentration tend to be around the Downtown area, also known as the [Downtown Core](https://lkyspp.nus.edu.sg/docs/default-source/case-studies/marina-bay_case-study.pdf?sfvrsn=8634960b_2), of Singapore. Potentially, this might be a major attractive feature for the downtown flow of visitors. This can be determined when the Spatial Interaction Model is created.
+
+#### Removing Zero Values
+
+It is important to note that there are many zeroes in the data set, which would not be appropriate for the creation of a spatial interaction mode as a log function might be applied to reduce the skewness in the distribution of variables. When a log function is applied to a zero value, it would result in a minus infinity value. This can be accomplished using the *ifelse()* function.
+
+```{r}
+flow_data$Entertainment <- ifelse(flow_data$Entertainment == 0, 0.99, flow_data$Entertainment)
+
+flow_data$FoodBev <- ifelse(flow_data$FoodBev == 0, 0.99, flow_data$FoodBev)
+
+flow_data$Retails <- ifelse(flow_data$Retails == 0, 0.99, flow_data$Retails)
+
+flow_data$FinServ <- ifelse(flow_data$FinServ == 0, 0.99, flow_data$FinServ)
+
+flow_data$Leisure <- ifelse(flow_data$Leisure == 0, 0.99, flow_data$Leisure)
+
+flow_data$trainstation <- ifelse(flow_data$trainstation == 0, 0.99, flow_data$trainstation)
+```
 
 ## Creating and Visualizing Flowline
 
@@ -933,3 +957,178 @@ Though there are numerous flow lines on the map, it is possible to identify that
 By creating a Spatial Interaction Model, it would be possible to determine what are the push and pull factors between the different origin and destination cells.
 
 ## Spatial Interaction Model
+
+Currently, there are three separate data frames, all containing required information for the Spatial Interaction Model. It is important to join them together using *inner_join().*
+
+#### Creating the Spatial Interaction Data Frame
+
+The three data frames which require joining are:
+
+1.  combined_hex: Containing the number of trips between each pair of Origin and Destination hexagon cell grid ID.
+2.  distPair: Containing the distance between each pair of Origin and Destination hexagon cell grid ID.
+3.  flow_data: Containing the number of bus stops, entertainment venues, retail stores, etc. in each hexagon cell based on their grid ID
+
+```{r}
+flow_data_drop_geom <- flow_data %>%
+  st_drop_geometry()
+
+final_df <- inner_join(combined_hex, distPair,
+                       by = join_by(ORIG_ID == ORIG_ID,
+                                    DESTIN_ID == DESTIN_ID))
+
+final_df <- inner_join(final_df, flow_data_drop_geom,
+                       by = join_by(ORIG_ID == grid_id)) %>%
+  rename(ORIG.Entertainment = Entertainment,
+         ORIG.FoodBev = FoodBev,
+         ORIG.Retails = Retails,
+         ORIG.FinServ = FinServ,
+         ORIG.Leisure = Leisure,
+         ORIG.trainstation = trainstation,
+         ORIG.busstop = n_busstop)
+
+final_df <- inner_join(final_df, flow_data_drop_geom,
+                       by = join_by(DESTIN_ID == grid_id)) %>%
+  rename(DESTIN.Entertainment = Entertainment,
+         DESTIN.FoodBev = FoodBev,
+         DESTIN.Retails = Retails,
+         DESTIN.FinServ = FinServ,
+         DESTIN.Leisure = Leisure,
+         DESTIN.trainstation = trainstation,
+         DESTIN.busstop = n_busstop)
+
+final_df
+```
+
+#### Visualizing the Dependent Variable
+
+Let\'s plot the distribution of the dependent variable (i.e. TRIPS) by making a histogram with **ggplot2**.
+
+```{r}
+ggplot(final_df, aes(x = TOTAL_TRIP))+
+  geom_histogram()+
+  theme_classic()
+```
+
+The distribution is highly skewed and does not resemble a bell shape, also known as the normal distribution.
+
+Now, we can visualize the relation between the dependent variable and one of the independent variable (distance between zones) in the Spatial Interaction Mode.
+
+```{r}
+ggplot(final_df,
+       aes(x = dists,
+           y = TOTAL_TRIP))+
+  geom_point()+
+  geom_smooth(method = lm)
+```
+
+The relationship does not resemble a linear relationship.
+
+However, if we create a scatter plot using the log transformed version of these variables, the relationship will better resemble a linear relationship.
+
+```{r}
+ggplot(final_df,
+       aes(x = log(dists),
+           y = log(TOTAL_TRIP)))+
+  geom_point()+
+  geom_smooth(method = lm)
+```
+
+Due to the usage of hexagon cells, the distance between the centroids of many cells are fixed, making the scatter plots appear discrete instead of continuous. For example, for all hexagon cells next to each other, the distance between their centroids would always be 750.
+
+#### R-squared Function
+
+In order to measure how much variation of the trips can be accounted by the model, we will calculate the R-squared value. The R-squared value indicates the amount variation in the dependent variable which is explained by the model.
+
+```{r}
+CalcRSquared <- function(observed,estimated){
+  r <- cor(observed, estimated)
+  R2 <- r^2
+  R2
+}
+```
+
+#### Unconstrained Model
+
+*glm()* can be used to calibrate an unconstrained spatial interaction model. Our explanatory variables are origin number of different venues, destination number of different venues and distance between origin and destination in km (i.e. *dists).*
+
+```{r}
+uncSIM <- glm(TOTAL_TRIP ~
+                log(ORIG.Entertainment)+
+                log(ORIG.Retails)+
+                log(ORIG.Leisure)+
+                log(ORIG.FinServ)+
+                log(ORIG.FoodBev)+
+                log(ORIG.trainstation)+
+                log(DESTIN.Entertainment)+
+                log(DESTIN.Retails)+
+                log(DESTIN.Leisure)+
+                log(DESTIN.FinServ)+
+                log(DESTIN.FoodBev)+
+                log(DESTIN.trainstation)+
+                log(dists),
+              family = poisson(link = 'log'),
+              data = final_df,
+              na.action = na.exclude)
+
+uncSIM
+```
+
+The R-Squared value can be calculated to evaluate the model.
+
+```{r}
+CalcRSquared(uncSIM$data$TOTAL_TRIP, uncSIM$fitted.values)
+```
+
+#### Origin Constrained Model
+
+In an Origin Constrained Model, the origin cells will have no parameters as it is assumed to be a known constraint. According to Farmer & Oshan (2017), the Origin Constrained Model is used to "reproduce the observed out flows from each origin and allocate them to the various destinations."
+
+```{r}
+orcSIM <- glm(TOTAL_TRIP ~
+                ORIG_ID+
+                log(DESTIN.Entertainment)+
+                log(DESTIN.Retails)+
+                log(DESTIN.Leisure)+
+                log(DESTIN.FinServ)+
+                log(DESTIN.FoodBev)+
+                log(DESTIN.trainstation)+
+                log(dists),
+              family = poisson(link = 'log'),
+              data = final_df,
+              na.action = na.exclude)
+
+orcSIM
+```
+
+The R-Squared value can be calculated to evaluate the model.
+
+```{r}
+CalcRSquared(orcSIM$data$TOTAL_TRIP, orcSIM$fitted.values)
+```
+
+#### Destination Constrained Model
+
+In a Destination Constrained Model, the destination cells will have no parameters as it is assumed to be a known constraint. According to Farmer & Oshan (2017), the Destination Constrained Model "takes as given the in flows to each destination and allocates the interactions to the various origins."
+
+```{r}
+decSIM <- glm(TOTAL_TRIP ~
+                log(ORIG.Entertainment)+
+                log(ORIG.Retails)+
+                log(ORIG.Leisure)+
+                log(ORIG.FinServ)+
+                log(ORIG.FoodBev)+
+                log(ORIG.trainstation)+
+                DESTIN_ID+
+                log(dists),
+              family = poisson(link = 'log'),
+              data = final_df,
+              na.action = na.exclude)
+
+decSIM
+```
+
+The R-Squared value can be calculated to evaluate the model.
+
+```{r}
+CalcRSquared(decSIM$data$TOTAL_TRIP, decSIM$fitted.values)
+```
