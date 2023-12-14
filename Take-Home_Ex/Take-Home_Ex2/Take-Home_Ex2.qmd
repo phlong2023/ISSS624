@@ -10,24 +10,44 @@ execute:
 editor: visual
 ---
 
-## Objectives
+## Overview and Objectives
+
+This study will revolve around the flow of commuter bus trips in Singapore. Its objectives are as follow:
+
+1.  Identifying and Creating an appropriate Traffic Analysis Zone (TAZ) in the form of hexagon cells based on the locations of Singapore bus stops.
+
+2.  Visualizing the desired lines (flowlines) based on the origin-destination (O-D) data of commuter bus trips in Singapore based on a particular time frame and the defined TAZ.
+
+3.  Creating and Comparing different Spatial Interaction Models based on the O-D matrix and other relevant features in the origin and destination hexagon cells in the particular time frame.
 
 ## Getting Started
 
 First, the necessary R packages will be loaded using the *p_load()* function of the **pacman** package. *p_load()* will also install any package which is not already installed. The following packages will be loaded:
 
+-   [**DT**](https://rstudio.github.io/DT/): Provides an R interface to the JavaScript library DataTables.
+
+-   [**ggpubr**](https://rpkgs.datanovia.com/ggpubr/index.html): To arrange ggplot maps in a grid.
+
+-   [**performance**](https://easystats.github.io/performance/): For assessing model quality and model comparison.
+
+-   [**reshape2**](https://github.com/hadley/reshape/issues): For restructuring data
+
 -   [**sf**](https://cran.r-project.org/web/packages/sf/index.html)**:** For handling of geospatial data.
 
 -   [**sfdep**](https://sfdep.josiahparry.com/)**:** For determining the spatial dependence of spatial features. The three main categories of functionality relates to the determination of geometry neighbors, weights, and LISA.
+
+-   [**sp**](https://github.com/edzer/sp/): Classes and methods for spatial data.
+
+-   [**stplanr**](https://github.com/ropensci/stplanr): For creating desire lines on origin-destination data.
 
 -   [**tidyverse**](https://www.tidyverse.org/)**:** For manipulation of non-spatial data. This package contains ggplot2 for plotting, dplyr and tidyr for dataframe manipulation, and readr for reading comma-separated values (CSV).
 
 -   [**tmap**](https://cran.r-project.org/web/packages/tmap/vignettes/tmap-getstarted.html)**:** For thematic mapping, especially the mapping of simple features data frame.
 
--   [**spdep**](https://github.com/r-spatial/spdep): For drawing Moran scatterplot.
+-   [**units**](https://r-quantities.github.io/units/): Support for measurement units in R vectors, matrices and arrays
 
 ```{r}
-pacman::p_load(tmap, sf, sp, DT, performance, reshape2, ggpubr, units, tidyverse, sfdep, stplanr)
+pacman::p_load(tmap, sf, sp, DT, performance, reshape2, units, tidyverse, sfdep, stplanr, ggpubr)
 ```
 
 ## Defining the Desired Time Frame
@@ -47,18 +67,18 @@ This study will focus on the **Weekend/holiday Morning Peak 11am - 2pm**. This w
 
 For the purpose of this study, two types of data will be used: geospatial data which consists of spatial features and their coordinates information, and aspatial data which consists of attributes which can be ascribed to the geospatial data. Specifically, the following datasets will be used for each type:
 
-1.  Geospatial Data:
-    -   BusStop.shp: This shape file contains the locations of the bus stops in Singapore as at July 2023. This file can be retrieved from the Land Transport Authority (LTA) Data Mall ([link](https://datamall.lta.gov.sg/content/datamall/en/search_datasets.html?searchText=bus%20stop)). They are stored as points.
-    -   RapidTransitSystemStation.shp: This shape file contains the locations of all Mass Rapid Transit (MRT) and Light Rail Transit (LRT) stations in Singapore in polygon shapes.
-    -   Train_Station_Exit_Layer.shp: This shape file contains the exit points of all MRT and LRT stations in Singapore. They are stored as points.
-    -   entertn.shp: This shape file contains the locations of entertainment venues in Singapore such as cinemas and theatres. They are stored as points.
-    -   F&B.shp: This shape file contains the locations of Food & Beverage venues in Singapore such as restaurants and cafes. They are stored as points.
-    -   FinServ.shp: This shape file contains the locations of Financial Services in Singapore such ATMs, money changers, and banks. They are stored as points.
-    -   Liesure&Recreation.shp: This shape file contains the locations of Leisure and Recreation venues in Singapore such as sport venues, museums, and galleries. They are stored as points.
-    -   Retails.shp: This shape file contains the locations of Retail venues in Singapore, including all shops which might not fall under other categories. They are stored as points.
-2.  Aspatial Data:
-    -   origin_destination_bus_202309.csv: This CSV file contains the detail of bus trips from an originating bus stop to a destination bus stop, identified by their unique codes, each hour of the day during September 2023. The data is further broken down into weekend or weekday, but not by the specific day of the week. This data can be retrieved by using the LTA Data Mall's API ([link](https://datamall.lta.gov.sg/content/dam/datamall/datasets/LTA_DataMall_API_User_Guide.pdf)).
-    -   hdb.csv: This CSV file contains the details of different HDB blocks in Singapore, including the number of dwelling units and their types. More importantly, it also consists of the longitudes and latitudes of the HDB blocks, which would allow us to create a sf data frame and treat the information as a spatial object.
+1.  **Geospatial Data:**
+    -   **BusStop.shp**: This shape file contains the locations of the bus stops in Singapore as at July 2023. This file can be retrieved from the Land Transport Authority (LTA) Data Mall ([link](https://datamall.lta.gov.sg/content/datamall/en/search_datasets.html?searchText=bus%20stop)). They are stored as points.
+    -   **RapidTransitSystemStation.shp**: This shape file contains the locations of all Mass Rapid Transit (MRT) and Light Rail Transit (LRT) stations in Singapore in polygon shapes.
+    -   **Train_Station_Exit_Layer.shp**: This shape file contains the exit points of all MRT and LRT stations in Singapore. They are stored as points.
+    -   **entertn.shp**: This shape file contains the locations of entertainment venues in Singapore such as cinemas and theatres. They are stored as points.
+    -   **F&B.shp**: This shape file contains the locations of Food & Beverage venues in Singapore such as restaurants and cafes. They are stored as points.
+    -   **FinServ.shp**: This shape file contains the locations of Financial Services in Singapore such ATMs, money changers, and banks. They are stored as points.
+    -   **Liesure&Recreation.shp**: This shape file contains the locations of Leisure and Recreation venues in Singapore such as sport venues, museums, and galleries. They are stored as points.
+    -   **Retails.shp**: This shape file contains the locations of Retail venues in Singapore, including all shops which might not fall under other categories. They are stored as points.
+2.  **Aspatial Data:**
+    -   **origin_destination_bus_202309.csv**: This CSV file contains the detail of bus trips from an originating bus stop to a destination bus stop, identified by their unique codes, each hour of the day during September 2023. The data is further broken down into weekend or weekday, but not by the specific day of the week. This data can be retrieved by using the LTA Data Mall's API ([link](https://datamall.lta.gov.sg/content/dam/datamall/datasets/LTA_DataMall_API_User_Guide.pdf)).
+    -   **hdb.csv**: This CSV file contains the details of different HDB blocks in Singapore, including the number of dwelling units and their types. More importantly, it also consists of the longitudes and latitudes of the HDB blocks, which would allow us to create a sf data frame and treat the information as a spatial object.
 
 The first steps taken will be to import these files into the R environment in a manipulable format.
 

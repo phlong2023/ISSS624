@@ -4,7 +4,7 @@
     "href": "Take-Home_Ex/Take-Home_Ex2/Take-Home_Ex2.html#getting-started",
     "title": "Take-Home_Ex2",
     "section": "Getting Started",
-    "text": "Getting Started\nFirst, the necessary R packages will be loaded using the p_load() function of the pacman package. p_load() will also install any package which is not already installed. The following packages will be loaded:\n\nsf: For handling of geospatial data.\nsfdep: For determining the spatial dependence of spatial features. The three main categories of functionality relates to the determination of geometry neighbors, weights, and LISA.\ntidyverse: For manipulation of non-spatial data. This package contains ggplot2 for plotting, dplyr and tidyr for dataframe manipulation, and readr for reading comma-separated values (CSV).\ntmap: For thematic mapping, especially the mapping of simple features data frame.\nspdep: For drawing Moran scatterplot.\n\n\npacman::p_load(tmap, sf, sp, DT, performance, reshape2, ggpubr, units, tidyverse, sfdep, stplanr)"
+    "text": "Getting Started\nFirst, the necessary R packages will be loaded using the p_load() function of the pacman package. p_load() will also install any package which is not already installed. The following packages will be loaded:\n\nDT: Provides an R interface to the JavaScript library DataTables.\nggpubr: To arrange ggplot maps in a grid.\nperformance: For assessing model quality and model comparison.\nreshape2: For restructuring data\nsf: For handling of geospatial data.\nsfdep: For determining the spatial dependence of spatial features. The three main categories of functionality relates to the determination of geometry neighbors, weights, and LISA.\nsp: Classes and methods for spatial data.\nstplanr: For creating desire lines on origin-destination data.\ntidyverse: For manipulation of non-spatial data. This package contains ggplot2 for plotting, dplyr and tidyr for dataframe manipulation, and readr for reading comma-separated values (CSV).\ntmap: For thematic mapping, especially the mapping of simple features data frame.\nunits: Support for measurement units in R vectors, matrices and arrays\n\n\npacman::p_load(tmap, sf, sp, DT, performance, reshape2, units, tidyverse, sfdep, stplanr, ggpubr)"
   },
   {
     "objectID": "Take-Home_Ex/Take-Home_Ex2/Take-Home_Ex2.html#defining-the-desired-time-frame",
@@ -915,5 +915,19 @@
     "title": "Take-Home_Ex2",
     "section": "References",
     "text": "References\nFarmer, C. and Oshan, T. (2017). Spatial interaction. The Geographic Information Science & Technology Body of Knowledge (4th Quarter 2017 Edition), John P. Wilson (ed.). https://gistbok.ucgis.org/bok-topics/spatial-interaction\nMiller, E. J. (2021). Traffic Analysis Zone Definition: Issues & Guidance. University of Toronto Faculty of Applied Science & Engineering Transportation Research Institute. https://tmg.utoronto.ca/files/Reports/Traffic-Zone-Guidance_March-2021_Final.pdf"
+  },
+  {
+    "objectID": "Take-Home_Ex/Take-Home_Ex2/Take-Home_Ex2.html",
+    "href": "Take-Home_Ex/Take-Home_Ex2/Take-Home_Ex2.html",
+    "title": "Take-Home_Ex2",
+    "section": "",
+    "text": "This study will revolve around the flow of commuter bus trips in Singapore. Its objectives are as follow:\n\nIdentifying and Creating an appropriate Traffic Analysis Zone (TAZ) in the form of hexagon cells based on the locations of Singapore bus stops.\nVisualizing the desired lines (flowlines) based on the origin-destination (O-D) data of commuter bus trips in Singapore based on a particular time frame and the defined TAZ.\nCreating and Comparing different Spatial Interaction Models based on the O-D matrix and other relevant features in the origin and destination hexagon cells in the particular time frame."
+  },
+  {
+    "objectID": "Take-Home_Ex/Take-Home_Ex2/Take-Home_Ex2.html#overview-and-objectives",
+    "href": "Take-Home_Ex/Take-Home_Ex2/Take-Home_Ex2.html#overview-and-objectives",
+    "title": "Take-Home_Ex2",
+    "section": "",
+    "text": "This study will revolve around the flow of commuter bus trips in Singapore. Its objectives are as follow:\n\nIdentifying and Creating an appropriate Traffic Analysis Zone (TAZ) in the form of hexagon cells based on the locations of Singapore bus stops.\nVisualizing the desired lines (flowlines) based on the origin-destination (O-D) data of commuter bus trips in Singapore based on a particular time frame and the defined TAZ.\nCreating and Comparing different Spatial Interaction Models based on the O-D matrix and other relevant features in the origin and destination hexagon cells in the particular time frame."
   }
 ]
