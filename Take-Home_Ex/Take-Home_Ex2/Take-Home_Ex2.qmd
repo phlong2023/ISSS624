@@ -10,6 +10,8 @@ execute:
 editor: visual
 ---
 
+# A Study of Singapore Public Bus Flow during the Weekend/Holiday Morning Peak 11am - 2pm
+
 ## Overview and Objectives
 
 This study will revolve around the flow of commuter bus trips in Singapore. Its objectives are as follow:
@@ -114,7 +116,14 @@ Additionally, mpsz can be visualized in order to spot any anomaly. This can be d
 
 ```{r}
 tm_shape(mpsz)+
-  tm_polygons(col = 'white')
+  tm_polygons(col = 'white')+
+  tm_layout(main.title = 'Singapore Planning Subzones',
+            main.title.position = 'center')+
+  tm_compass(type='8star',size=2)+
+  tm_scale_bar()+
+  tm_grid(alpha = 0.2)+
+  tm_credits('Sourrce: Planning Sub-zone boundary from Urban Redevelopment Authority',
+             position = c('left','bottom'))
 ```
 
 #### Bus Stop
@@ -139,7 +148,14 @@ A separate *tm_shape()* argument can be used to add the mpsz object as a layer o
 tm_shape(mpsz)+
   tm_polygons(col = 'white')+
   tm_shape(busstop)+
-  tm_dots(col = 'red')
+  tm_dots(col = 'red')+
+  tm_layout(main.title = 'Singapore Bus Stops',
+            main.title.position = 'center')+
+  tm_compass(type='8star',size=2)+
+  tm_scale_bar()+
+  tm_grid(alpha = 0.2)+
+  tm_credits('Sourrce: Bus Stops Location from Land Transport Authority',
+             position = c('left','bottom'))
 ```
 
 The visualization shows us that there are four bus stops in Malaysia. Let's remove them so that only bus stops in Singapore will be considered. This is because these special bus stops might exhibit different behaviors due to their different context from the rest of the bus stops in Singapore.
@@ -156,7 +172,14 @@ busstop <- busstop %>%   filter(!BUS_STOP_N %in% c('46609','47701', '46211', '46
 tm_shape(mpsz)+
   tm_polygons(col = 'white')+
   tm_shape(busstop)+
-  tm_dots(col = 'red')
+  tm_dots(col = 'red')+
+  tm_layout(main.title = 'Singapore Bus Stops',
+            main.title.position = 'center')+
+  tm_compass(type='8star',size=2)+
+  tm_scale_bar()+
+  tm_grid(alpha = 0.2)+
+  tm_credits('Sourrce: Bus Stops Location from Land Transport Authority',
+             position = c('left','bottom'))
 ```
 
 #### Entertainment
@@ -176,8 +199,15 @@ As can be seen, venues such as galleries, theatres, and cinemas are included in 
 tm_shape(mpsz)+
   tm_polygons(col = 'white')+
   tm_shape(Entertainment)+
-  tm_dots(col = 'red')
+  tm_dots(col = 'red')+
+  tm_layout(main.title = 'Singapore Entertainment Venues',
+            main.title.position = 'center')+
+  tm_compass(type='8star',size=2)+
+  tm_scale_bar()+
+  tm_grid(alpha = 0.2)
 ```
+
+An immediate stand-out from the visualization is the fact that most entertainment venues are concentrated in the Downtown Core area, which might be a potential attractive factor.
 
 #### Food and Beverage (F&B)
 
@@ -194,8 +224,15 @@ As can be seen, venues such as pubs, restaurants, and cafes are included in the 
 tm_shape(mpsz)+
   tm_polygons(col = 'white')+
   tm_shape(FoodBev)+
-  tm_dots(col = 'red')
+  tm_dots(col = 'red')+
+  tm_layout(main.title = 'Singapore F&B Venues',
+            main.title.position = 'center')+
+  tm_compass(type='8star',size=2)+
+  tm_scale_bar()+
+  tm_grid(alpha = 0.2)
 ```
+
+An immediate stand-out from the visualization is the fact that most F&B venues are concentrated in the Downtown Core area, which might be a potential attractive factor.
 
 #### Financial Services
 
@@ -212,8 +249,15 @@ As can be seen, venues such as bank branches, moneychangers, and ATMs are includ
 tm_shape(mpsz)+
   tm_polygons(col = 'white')+
   tm_shape(FinServ)+
-  tm_dots(col = 'red')
+  tm_dots(col = 'red')+
+  tm_layout(main.title = 'Singapore Financial Services',
+            main.title.position = 'center')+
+  tm_compass(type='8star',size=2)+
+  tm_scale_bar()+
+  tm_grid(alpha = 0.2)
 ```
+
+Unlike Entertainment and F&B Venues, Financial Services are more distributed throughout Singapore. However, there still seems to be concentration in the Downtown Core.
 
 #### Leisure
 
@@ -244,8 +288,15 @@ glimpse(Leisure)
 tm_shape(mpsz)+
   tm_polygons(col = 'white')+
   tm_shape(Leisure)+
-  tm_dots(col = 'red')
+  tm_dots(col = 'red')+
+  tm_layout(main.title = 'Singapore Leisure Venues',
+            main.title.position = 'center')+
+  tm_compass(type='8star',size=2)+
+  tm_scale_bar()+
+  tm_grid(alpha = 0.2)
 ```
+
+An immediate stand-out from the visualization is the fact that most retail venues are concentrated in the Downtown Core area, which might be a potential attractive factor.
 
 #### Retails
 
@@ -262,8 +313,15 @@ As can be seen, venues such as bank pharmacy, gift shops, and other general and 
 tm_shape(mpsz)+
   tm_polygons(col = 'white')+
   tm_shape(Retails)+
-  tm_dots(col = 'red')
+  tm_dots(col = 'red')+
+  tm_layout(main.title = 'Singapore Retails Venues',
+            main.title.position = 'center')+
+  tm_compass(type='8star',size=2)+
+  tm_scale_bar()+
+  tm_grid(alpha = 0.2)
 ```
+
+Unlike other data frames, it appears that retail venues are quite distributed across the islands, with most location having many different retail venues. However, this map is lacking in fidelity in terms of the type of retail venues, specifically in the category of goods sold.
 
 #### Train Station and Station Exits
 
@@ -336,7 +394,9 @@ tm_shape(mpsz)+
   tm_shape(trainexit)+
   tm_dots(col = 'red',
           id = 'exit_code')+
-  tm_view(set.zoom.limits = c(11,16))
+  tm_view(set.zoom.limits = c(11,16))+
+  tm_layout(title = 'Singapore Train Station and Exits',
+            title.position = c('right','top'))
 
 tmap_mode('plot')
 ```
@@ -367,7 +427,11 @@ tm_shape(mpsz)+
   tm_shape(trainexit)+
   tm_dots(col = 'red',
           id = 'exit_code')+
-  tm_view(set.zoom.limits = c(11,16))
+  tm_view(set.zoom.limits = c(11,16))+
+  tm_layout(title = 'Singapore Train Station and Exits',
+            title.position = c('right','top'))
+
+tmap_mode('plot')
 ```
 
 ### Importing Aspatial Data
@@ -421,11 +485,21 @@ hdb_sf <- hdb %>%
            crs = 4326) %>%
   st_transform(3414)
 
+
 tm_shape(mpsz)+
   tm_polygons(col = 'white')+
   tm_shape(hdb_sf)+
-  tm_dots(col = 'red')
+  tm_dots(col = 'red')+
+  tm_layout(main.title = 'Singapore HDB Apartment Buildings',
+            main.title.position = 'center')+
+  tm_compass(type='8star',size=2)+
+  tm_scale_bar()+
+  tm_grid(alpha = 0.2)+
+  tm_credits('Sourrce: HDB Property Information from data.gov.sg',
+             position = c('left','bottom'))
 ```
+
+It can be see that the HDB apartment buildings in Singapore are highly clustered together. This is because HDB buildings are often built into entire neighborhoods to allow for better planning of amenities, transit options, and other government services. This high population concentration potentially allows the capacity of HDB buildings to be a propulsive factors.
 
 ## Data Preparation
 
@@ -475,7 +549,8 @@ It is possible to visualize the distribution of trips by using creating a histog
 ```{r}
 ggplot(passenger_tallied, aes(x=TRIPS))+
   geom_histogram()+
-  theme_classic()
+  theme_classic()+
+  ggtitle('Distribution of Bus Trips by Origin-Destination Bus Stops')
 ```
 
 Let's confirm the distribution by checking the descriptive statistics of the number of trips based on the origin and destination bus stop. This can be done using the *summary()* function.
@@ -521,7 +596,9 @@ tmap_mode('plot')
 tm_shape(mpsz)+
   tm_polygons()+
   tm_shape(area_honeycomb_grid)+
-  tm_polygons()
+  tm_polygons()+
+  tm_layout(main.title = 'Full Hexagon Grid over Singapore',
+            main.title.position = 'center')
 ```
 
 The area_honey_comb needs to be converted to a sf data frame for further manipulation using *st_sf()*. Additionally, we can assign a unique id to each of the hexagon cell in area_honey_comb using *mutate().*
@@ -541,17 +618,12 @@ honeycomb_grid_sf$n_busstop = lengths(st_intersects(honeycomb_grid_sf,busstop))
 # Removing all cells without bus stop
 honeycomb_count = filter(honeycomb_grid_sf, n_busstop > 0)
 
+honeycomb_count$grid_id <- as.character(honeycomb_count$grid_id)
 ```
 
 We can see that there are 1050 hexagon cells in honeycomb_count, indicating that there are 1050 cells with at least 1 bus stops.
 
 At this point, the hexagon grid of bus stop can be drawn onto a map of Singapore using the functions of the **tmap** package. Additionally, the n_busstop column can be passed to the *tm_fill()* function to shade the cell based on the number of bus stops in it.
-
-::: callout-note
--   tm_basemap: Choosing the basemap layer on which the hexagon grid will be drawn. OpenStreetMap is chosen due to its high fidelity while not being overly crowded. Additionally, OpenStreetMap displays icon for bus stops in Singapore, allowing user to visually check any cell.
-
-    -   If an incorrect CRS was specified in the earlier steps, the basemap will be of an incorrect location or alignment.
-:::
 
 ```{r}
 tmap_mode('plot')
@@ -575,7 +647,10 @@ bushexmap <-   tm_shape(mpsz)+
     )
   ) +
   tm_borders(col = "grey40", lwd = 0.7)+
-  tm_layout(main.title = 'Distribution of Bus Stops', main.title.position = 'center')
+  tm_layout(main.title = 'Distribution of Bus Stops by Hexagon Cells on Map', main.title.position = 'center')+
+  tm_compass(type='8star',size=2)+
+  tm_scale_bar()+
+  tm_grid(alpha = 0.2)
 
 bushexmap
 ```
@@ -583,7 +658,10 @@ bushexmap
 From the illustration, we can see that each cell might contain up to 14 bus stops. A bar chat can be drawn with the **ggplot2** package to visualize the distribution of number of bus stop in each cell.
 
 ```{r}
-ggplot(honeycomb_count, aes(x=n_busstop))+   geom_bar()+   theme_classic()+   geom_text(aes(label = after_stat(count)), stat = "count", vjust = -0.5, colour = "black")
+ggplot(honeycomb_count, aes(x=n_busstop))+   
+  geom_bar()+   theme_classic()+   
+  geom_text(aes(label = after_stat(count)), stat = "count", vjust = -0.5, colour = "black")+
+  ggtitle('Distribution of Bus Stops by Hexagon Cells as Histogram')
 ```
 
 As can be seen, the majority of cells contain 1-9 bus stops with only 178 cells containing 10 or more bus stops. This shows that the cells adequately capture solitary bus stop, as well as pairs of bus stops (bus stops which are opposite each other, served by the same bus services).
@@ -893,7 +971,10 @@ ent <- tm_shape(mpsz)+
           palette = 'Reds',
           alpha = 0.7)+
   tm_borders(alpha = 0.5)+
-  tm_layout(main.title = 'Entertainment Distribution', main.title.position = 'center', main.title.size = 1.5)
+  tm_layout(main.title = 'Entertainment Distribution by Hexagon Cells', main.title.position = 'center', main.title.size = 1.5)+
+  tm_compass(type='8star',size=2)+
+  tm_scale_bar()+
+  tm_grid(alpha = 0.2)
 
 ent
 
@@ -905,7 +986,10 @@ leis <- tm_shape(mpsz)+
           palette = 'Reds',
           alpha = 0.7)+
   tm_borders(alpha = 0.5)+
-  tm_layout(main.title = 'Leisure Distribution', main.title.position = 'center', main.title.size = 1.5)
+  tm_layout(main.title = 'Leisure Distribution by Hexagon Cells', main.title.position = 'center', main.title.size = 1.5)+
+  tm_compass(type='8star',size=2)+
+  tm_scale_bar()+
+  tm_grid(alpha = 0.2)
 
 leis
 
@@ -917,7 +1001,10 @@ fin <- tm_shape(mpsz)+
           palette = 'Reds',
           alpha = 0.7)+
   tm_borders(alpha = 0.5)+
-  tm_layout(main.title = 'Financial Service Distribution', main.title.position = 'center', main.title.size = 1.5)
+  tm_layout(main.title = 'Financial Service Distribution by Hexagon Cells', main.title.position = 'center', main.title.size = 1.5)+
+  tm_compass(type='8star',size=2)+
+  tm_scale_bar()+
+  tm_grid(alpha = 0.2)
 
 fin
 
@@ -929,7 +1016,10 @@ ret <- tm_shape(mpsz)+
           palette = 'Reds',
           alpha = 0.7)+
   tm_borders(alpha = 0.5)+
-  tm_layout(main.title = 'Retails Distribution', main.title.position = 'center', main.title.size = 1.5)
+  tm_layout(main.title = 'Retails Distribution by Hexagon Cells', main.title.position = 'center', main.title.size = 1.5)+
+  tm_compass(type='8star',size=2)+
+  tm_scale_bar()+
+  tm_grid(alpha = 0.2)
 
 ret
 
@@ -941,7 +1031,10 @@ fb <- tm_shape(mpsz)+
           palette = 'Reds',
           alpha = 0.7)+
   tm_borders(alpha = 0.5)+
-  tm_layout(main.title = 'F&B Distribution', main.title.position = 'center', main.title.size = 1.5)
+  tm_layout(main.title = 'F&B Distribution by Hexagon Cells', main.title.position = 'center', main.title.size = 1.5)+
+  tm_compass(type='8star',size=2)+
+  tm_scale_bar()+
+  tm_grid(alpha = 0.2)
 
 fb
 
@@ -953,7 +1046,10 @@ train <- tm_shape(mpsz)+
           palette = 'Reds',
           alpha = 0.7)+
   tm_borders(alpha = 0.5)+
-  tm_layout(main.title = 'Train Station Distribution', main.title.position = 'center', main.title.size = 1.5)
+  tm_layout(main.title = 'Train Station Distribution by Hexagon Cells', main.title.position = 'center', main.title.size = 1.5)+
+  tm_compass(type='8star',size=2)+
+  tm_scale_bar()+
+  tm_grid(alpha = 0.2)
 
 train
 
@@ -1028,7 +1124,10 @@ tm_shape(mpsz)+
            scale = c(0.1, 1, 3, 5, 7, 10),
            n = 6,
            alpha = 0.3)+
-  tm_layout(main.title = 'Weekdend/Holiday Morning Peak Flowline - Quantile', main.title.position = 'center', scale = 0.7)
+  tm_layout(main.title = 'Weekdend/Holiday Morning Peak Flowline - Quantile', main.title.position = 'center', scale = 0.7)+
+  tm_compass(type='8star',size=2)+
+  tm_scale_bar()+
+  tm_grid(alpha = 0.2)
 
 tm_shape(mpsz)+
   tm_polygons(col = 'white')+
@@ -1045,7 +1144,10 @@ tm_shape(mpsz)+
            scale = c(0.1, 1, 3, 5, 7, 10),
            n = 6,
            alpha = 0.3)+
-  tm_layout(main.title = 'Weekdend/Holiday Morning Peak Flowline - Jenks', main.title.position = 'center', scale = 0.7)
+  tm_layout(main.title = 'Weekdend/Holiday Morning Peak Flowline - Jenks', main.title.position = 'center', scale = 0.7)+
+  tm_compass(type='8star',size=2)+
+  tm_scale_bar()+
+  tm_grid(alpha = 0.2)
 
 
 tm_shape(mpsz)+
@@ -1063,7 +1165,10 @@ tm_shape(mpsz)+
            scale = c(0.1, 1, 3, 5, 7, 10),
            n = 6,
            alpha = 0.3)+
-  tm_layout(main.title = 'Weekdend/Holiday Morning Peak Flowline - Equal', main.title.position = 'center', scale = 0.7)
+  tm_layout(main.title = 'Weekdend/Holiday Morning Peak Flowline - Equal', main.title.position = 'center', scale = 0.7)+
+  tm_compass(type='8star',size=2)+
+  tm_scale_bar()+
+  tm_grid(alpha = 0.2)
 ```
 
 Though there are numerous flow lines on the map, it is possible to identify that there are major clusters on the map where many lines converge and where thicker lines can be found. These usually are the major bus interchanges where many bus stops and starts, and which are located near population centres and shopping malls. There are numerous thinner red lines in the downtown area of Singapore, showing shorter trips on lower intensity lines. The distribution of numerous thin flow lines potentially indicates that commuters in this area are more distributed rather than concentrated in key points, implying diverse options for commuters during the Weekend/Holiday Morning.
@@ -1090,6 +1195,9 @@ flow_data_drop_geom <- flow_data %>%
 
 hdb_grid_drop_geom <- hdb_grid %>%
   st_drop_geometry()
+
+distPair$ORIG_ID <- as.character(distPair$ORIG_ID)
+distPair$DESTIN_ID <- as.character(distPair$DESTIN_ID)
 
 final_df <- inner_join(combined_hex, distPair,
                        by = join_by(ORIG_ID == ORIG_ID,
@@ -1133,7 +1241,8 @@ Let's plot the distribution of the dependent variable (TOTAL_TRIP) by making a h
 ```{r}
 ggplot(final_df, aes(x = TOTAL_TRIP))+
   geom_histogram()+
-  theme_classic()
+  theme_classic()+
+  ggtitle('Distribution of Total Trips by Hexagon Cells as Histogram')
 ```
 
 The distribution is highly skewed and does not resemble a bell shape, also known as the normal distribution.
@@ -1145,7 +1254,8 @@ ggplot(final_df,
        aes(x = dists,
            y = TOTAL_TRIP))+
   geom_point()+
-  geom_smooth(method = lm)
+  geom_smooth(method = lm)+
+  ggtitle('Relationship between Total Trips and Distance between Hexagon Centroid')
 ```
 
 The relationship does not resemble a linear relationship.
@@ -1157,7 +1267,8 @@ ggplot(final_df,
        aes(x = log(dists),
            y = log(TOTAL_TRIP)))+
   geom_point()+
-  geom_smooth(method = lm)
+  geom_smooth(method = lm)+
+  ggtitle('Relationship between Log-transformed Total Trips and Log-transformed Distance between Hexagon Centroid')
 ```
 
 Due to the usage of hexagon cells, the distance between the centroids of many cells are fixed, making the scatter plots appear discrete instead of continuous. For example, for all hexagon cells next to each other, the distance between their centroids would always be 750.
@@ -1180,11 +1291,6 @@ CalcRSquared <- function(observed,estimated){
 
 ```{r}
 uncSIM <- glm(TOTAL_TRIP ~
-                log(ORIG.Entertainment)+
-                log(ORIG.Retails)+
-                log(ORIG.Leisure)+
-                log(ORIG.FinServ)+
-                log(ORIG.FoodBev)+
                 log(ORIG.trainstation)+
                 log(ORIG.busstop)+
                 log(ORIG.capacity)+
@@ -1200,6 +1306,9 @@ uncSIM <- glm(TOTAL_TRIP ~
               data = final_df,
               na.action = na.exclude)
 
+```
+
+```{r}
 summary(uncSIM)
 ```
 
@@ -1213,7 +1322,7 @@ The R-Squared value can be calculated using the function defined earlier.
 CalcRSquared(uncSIM$data$TOTAL_TRIP, uncSIM$fitted.values)
 ```
 
-The R-Squared value indicates that the model can account for roughly 36.17% of the variation in the number of trips between each pair of origin-destination.
+The R-Squared value indicates that the model can account for roughly 33.63% of the variation in the number of trips between each pair of origin-destination.
 
 ### Origin Constrained Model
 
@@ -1233,11 +1342,13 @@ orcSIM <- glm(TOTAL_TRIP ~
               family = poisson(link = 'log'),
               data = final_df,
               na.action = na.exclude)
+```
 
+```{r}
 summary(orcSIM)
 ```
 
-Similar to the Unconstrained Model, it can be seen that all p-value of each factor is much lower than 0.05, showing that they are all statistically significant. However, a cursory examination show that the coefficients values are lower than in the Unconstrained Model.
+Similar to the Unconstrained Model, it can be seen that most p-value for each factor is much lower than 0.05, showing that most of them are statistically significant.
 
 Let's calculated the R-Squared value.
 
@@ -1245,7 +1356,7 @@ Let's calculated the R-Squared value.
 CalcRSquared(orcSIM$data$TOTAL_TRIP, orcSIM$fitted.values)
 ```
 
-The R-Squared value indicates that the model can account for roughly 25.37% of the variation in the number of trips between each pair of origin-destination.
+The R-Squared value indicates that the model can account for roughly 44.96% of the variation in the number of trips between each pair of origin-destination.
 
 ### Destination Constrained Model
 
@@ -1266,11 +1377,13 @@ decSIM <- glm(TOTAL_TRIP ~
               family = poisson(link = 'log'),
               data = final_df,
               na.action = na.exclude)
+```
 
+```{r}
 summary(decSIM)
 ```
 
-Similar to the Unconstrained Model, it can be seen that all p-value of each factor is much lower than 0.05, showing that they are all statistically significant. However, a cursory examination show that the coefficients values are lower than in the Unconstrained Model.
+It can be seen that most p-value for each factor is much lower than 0.05, showing that most of them are statistically significant.
 
 Let's calculated the R-Squared value.
 
@@ -1278,7 +1391,7 @@ Let's calculated the R-Squared value.
 CalcRSquared(decSIM$data$TOTAL_TRIP, decSIM$fitted.values)
 ```
 
-The R-Squared value indicates that the model can account for roughly 23.2% of the variation in the number of trips between each pair of origin-destination.
+The R-Squared value indicates that the model can account for roughly 47.96% of the variation in the number of trips between each pair of origin-destination.
 
 ### Doubly Constrained Model
 
@@ -1292,11 +1405,13 @@ dbcSIM <- glm(TOTAL_TRIP ~
               family = poisson(link = 'log'),
               data = final_df,
               na.action = na.exclude)
+```
 
+```{r}
 summary(dbcSIM)
 ```
 
-Similar to the Unconstrained Model, it can be seen that all p-value of each factor is much lower than 0.05, showing that they are all statistically significant. However, a cursory examination show that the coefficients values are lower than in the Unconstrained Model.
+Similar to the Unconstrained Model, it can be seen that all p-value of each factor is much lower than 0.05, showing that they are all statistically significant.
 
 Let's calculated the R-Squared value.
 
@@ -1304,7 +1419,7 @@ Let's calculated the R-Squared value.
 CalcRSquared(dbcSIM$data$TOTAL_TRIP, dbcSIM$fitted.values)
 ```
 
-The R-Squared value indicates that the model can account for roughly 12.23% of the variation in the number of trips between each pair of origin-destination.
+The R-Squared value indicates that the model can account for roughly 59.93% of the variation in the number of trips between each pair of origin-destination.
 
 ### Model Comparison
 
@@ -1324,9 +1439,9 @@ compare_performance(model_list,
                     metrics = mtric)
 ```
 
-From this Model Comparison, the Unconstrained Model as the lowest RMSE, indicating that its fitted values is the closest to the actual values compared to the other models. Additionally, the Akaike Information Criterion (AIC), which tends to prefer less complex models with better explanatory power, tells us that the Unconstrained Model is the most appropriate due to it having the lowest value.
+From this Model Comparison, the Doubly Constrained Model as the lowest RMSE, indicating that its fitted values is the closest to the actual values compared to the other models. Additionally, the Akaike Information Criterion (AIC), which tends to prefer less complex models with better explanatory power, tells us that the Doubly Constrained Model is the most appropriate due to it having the lowest value.
 
-Thus, the Unconstrained Model would be the most appropriate model for our purpose. Before moving on to examine it in further depth, the fitted values can be visualized.
+Thus, the Doubly Constrained Model would be the most appropriate model for our purpose. Before moving on to examine it in further depth, the fitted values can be visualized.
 
 ### Visualizing Fitted Values
 
@@ -1381,84 +1496,50 @@ unc_p <- ggplot(final_df_with_fit,
                 aes(x = uncTRIPS,
                     y = TOTAL_TRIP))+
   geom_point()+
-  geom_smooth(method = lm)
+  geom_smooth(method = lm)+
+  ggtitle('Actual and Fitted Values in Unconstrained Model')+
+  theme(plot.title=element_text(size=7))
 
 orc_p <- ggplot(data = final_df_with_fit,
                 aes(x = orcTRIPS,
                     y = TOTAL_TRIP)) +
   geom_point() +
-  geom_smooth(method = lm)
+  geom_smooth(method = lm)+
+  ggtitle('Actual and Fitted Values in Origin-Constrained Model')+
+  theme(plot.title=element_text(size=7))
 
 dec_p <- ggplot(data = final_df_with_fit,
                 aes(x = decTRIPS,
                     y = TOTAL_TRIP)) +
   geom_point() +
-  geom_smooth(method = lm)
+  geom_smooth(method = lm)+
+  ggtitle('Actual and Fitted Values in Destination-Constrained Model')+
+  theme(plot.title=element_text(size=7))
 
 dbc_p <- ggplot(data = final_df_with_fit,
                 aes(x = dbcTRIPS,
                     y = TOTAL_TRIP)) +
   geom_point() +
-  geom_smooth(method = lm)
+  geom_smooth(method = lm)+
+  ggtitle('Actual and Fitted Values in Doubly-Constrained Model')+
+  theme(plot.title=element_text(size=7))
 
 ggarrange(unc_p, orc_p, dec_p, dbc_p,
           ncol = 2,
           nrow = 2)
 ```
 
-From a brief examination, it is identifiable that the Unconstrained Model provides the best fit line between the predicted values and the actual values.
+From a brief examination, it is identifiable that the Doubly Constrained Model provides the best fit line between the predicted values and the actual values.
 
 ### Analyzing Chosen Model
 
-The coefficient values of the Unconstrained Model can be displayed again for further analysis of travel during the Weekend/Holiday Morning Peak 11am - 2pm (11:00 - 14:00).
+The coefficient values of the **Doubly Constrained Model** can be displayed again for further analysis of travel during the Weekend/Holiday Morning Peak 11am - 2pm (11:00 - 14:00).
 
 ```{r}
-summary(uncSIM)
+summary(dbcSIM)
 ```
 
-From this transformed value, it is possible to conclude the following:
-
--   ORIG.Entertainment: Every additional Entertainment venue at the origin hexagon cell would **increase** the log number of trips by roughly 0.02.
-
--   ORIG.Retails: Every additional Retail venue at the origin hexagon cell would **decrease** the log number of trips by roughly 0.043.
-
--   ORIG.Leisure: Every additional Leisure venue at the origin hexagon cell would **decrease** the log number of trips by roughly 0.176.
-
--   ORIG.FinServ: Every additional Financial Service venue at the origin hexagon cell would **increase** the log number of trips by roughly 0.398.
-
--   ORIG.FoodBev: Every additional F&B venue at the origin hexagon cell would **decrease** the log number of trips by roughly 0.068.
-
--   ORIG.trainstation: Every additional train station at the origin hexagon cell would **decrease** the log number of trips by roughly 0.046.
-
--   ORIG.busstop: Every additional bus stop at the origin hexagon cell would **increase** the log number of trips by roughly 0.3511.
-
--   ORIG.capacity: Every additional potential resident at the origin hexagon cell would **increase** the log number of trips by roughly 0.0752.
-
--   DESTIN.Entertainment: Every additional Entertainment venue at the destination hexagon cell would **increase** the log number of trips by roughly 0.0242.
-
--   DESTIN.Retails: Every additional Retail venue at the destination hexagon cell would **decrease** the log number of trips by roughly 0.0377.
-
--   DESTIN.Leisure: Every additional Leisure venue at the destination hexagon cell would **decrease** the log number of trips by roughly 0.1703.
-
--   DESTIN.FinServ: Every additional Financial Service venue at the destination hexagon cell would **increase** the log number of trips by roughly 0.5634.
-
--   DESTIN.FoodBev: Every additional F&B venue at the destination hexagon cell would **decrease** the log number of trips by roughly 0.1077.
-
--   DESTIN.trainstation: Every additional train station at the destination hexagon cell would **increase** the log number of trips by roughly 0.0216.
-
--   DESTIN.busstop: Every additional bus stop at the destination hexagon cell would **increase** the log number of trips by roughly 0.4347.
-
--   dists: Every additional unit of distance between the origin and the destination hexagon cell would **decrease** the log number of trips by roughly 1.4787.
-
-From the coefficients above, there are some expected as well as unexpected results.
-
-The result that every additional unit of distance would decrease the number of inter-zonal bus trips is self-explanatory, as longer distance would make travel less desirable, especially during the Weekend/Holiday Morning Peak. Similarly, the positive relationship between the destination number of bus stop, train station, and entertainment venues are intuitive. Having more bus stop and train station make a location more accessible while entertainment venues make a location more attractive; these would make them into attractive factors.
-
-On the propulsive factors end, the negative relationships between the origin number of retail, leisure, and F&B venues and number of inter-zonal trips indicate that the availability of these venues would decrease the likelihood of inter-zonal trips; people are less likely to commit to inter-zonal travel on a weekend/holiday morning if their needs can be met locally. Similarly, the positive relationship between the origin number of bus stop and number of inter-zonal bus trips can be understood as the accessibility of the travel option under consideration. Additionally, the positive relationship between the origin potential number of residents and the number of inter-zonal bus trips can possibly be understood as increasing the number of potential commuters.
-
-However, there are results which do not seem to fit intuitively into the conventional understanding of travel. In the origin cell, the positive relationship between the number of entertainment and financial service venues with number of inter-zonal bus trips is harder to explain. It is not clear why having more of these venues would increase the number of trips. Similarly, in the destination cell, the negative relationship between the number of retails, leisure, and F&B venues and the number of inter-zonal bus trips are confounding. It is not intuitive why having more of these potentially attractive venues would decrease the number of trips.
-
-Overall, even though the Unconstrained Model provides the best fitted values for the number of inter-zonal bus trips between hexagon cells, there are still unexplained effects in the spatial interaction model. Some of the coefficient values for produced by the models make intuitive sense while others are harder to explain. Additionally, the R-Squared value 36.16% indicates that the percentage of variation in the number of inter-zonal bus trips explained by the model remain low. Thus, further improvements in future research to improve the explanatory power of the model can be made.
+From this transformed value, it is possible to conclude the following: As the Doubly Constrained Model focuses entirely on the distance between the origin and destination hexagon cells (Fotheringham, 2001). The coefficient for the log-transform distance is -1.5665. This indicates that for every increase in one unit of log-transformed distance, the number of bus trip between an origin and destination hexagon is reduced by 1.5665. This indicates that even during the weekend/holiday morning peak period, the most important factor in determining bus travel is the distance between the origin and the destination, rather than other propulsive or attractive factors. If one attempts to parse a layman explanation, it would entail that commuters are less likely to travel by bus for further locations even during rest periods.
 
 ## Conclusion
 
@@ -1466,16 +1547,18 @@ This study has attempted to study the bus commuter flow in Singapore on Weekend/
 
 From the analysis of the Origin-Destination Flow, which was accomplished through the creation of an O-D Matrix and a flowline map, it was shown that bus interchanges are the centers of major clusters of flowlines. Additionally, the Downtown Core saw a large number of thin flow lines, suggesting more dispersed trips with no clear concentrations. This potentially suggests that commuters in this area are more distributed rather than concentrated in key points, implying diverse options for commuters during the Weekend/Holiday Morning.
 
-In terms of the Spatial Interaction Model, four models were constructed: Unconstrained, Origin Constrained, Destination Constrained, and Doubly Constrained. Every coefficients in every model demonstrate statistical significance. The models were then compared using their R-squared value, AIC, and RMSE; this helped determine that the Unconstrained Model produces the most optimal results, which is reinforced by the visualization of the models' fitted values.
+In terms of the Spatial Interaction Model, four models were constructed: Unconstrained, Origin Constrained, Destination Constrained, and Doubly Constrained. Every coefficients in every model demonstrate statistical significance. The models were then compared using their R-squared value, AIC, and RMSE; this helped determine that the Doubly Constrained Model produces the most optimal results, which is reinforced by the visualization of the models' fitted values.
 
-Within the Unconstrained Model, there are propulsive and attractive factors which seem to intuitive explain the variation in the number of inter-zonal bus trips such as the number of origin number of retail, leisure, and F&B venues, and the destination number of bus stop, train station, and entertainment venues. Yet, there are factors which do not seem to intuitive fit within the lay understanding of trip motivations, and which cannot be adequately explained by the study. These include the destination cells' number of retails, leisure, and F&B venues.
+Within the Doubly Constrained Model, it is determined that the distance between the origin and destination hexagon cells is the most important factor in explaining the number of bus trips between the two. Potentially, this tells us that distance is still more relevant than other potential propulsive and attractive factors. Overall, the conclusion drawn is that bus travel during the weekend/holiday morning peak is heavily determined by the distance between the origin and destination.
 
-Considering the outstanding unexplained results in the model, future research can consider incorporating more weekend/holiday-oriented information such as the diversity of retail and entertainment venue available in destination cells, and the diverse and average rating of F&B venues in destination cells. These information would help enrich the understanding of the propulsive and attractiveness factors in weekend/holiday morning flow. For example, even if there are technically many F&B options in an origin cell, the diversity and ratings in the destination cells might boost their attractiveness.
+Considering the study's limitations, future research can consider incorporating more weekend/holiday-oriented information such as the diversity of retail and entertainment venue available in destination cells, and the diverse and average rating of F&B venues in destination cells. These information would help enrich the understanding of the propulsive and attractiveness factors in weekend/holiday morning flow. For example, even if there are technically many F&B options in an origin cell, the diversity and ratings in the destination cells might boost their attractiveness. Furthermore, the distinctions between train and bus trips might be important, as the distance commuters are willing to travel might depend on their choice of transit mode. Additionally, the Spatial Interaction models built did not take into account spatial weights, based on neighbor definition of the hexagon cells, it might not be realistic in accounting for spatial relationships.
 
 In sum, this study has examined the Weekend/Holiday Morning flow based on origin and destination hexagon cells. However, the Spatial Interaction model can be improved further by including additional information on the attractiveness factors at the destination.
 
 ## References
 
 Farmer, C. and Oshan, T. (2017). Spatial interaction. *The Geographic Information Science & Technology Body of Knowledge* (4th Quarter 2017 Edition), John P. Wilson (ed.). <https://gistbok.ucgis.org/bok-topics/spatial-interaction>
+
+Fotheringham, A. S. (2001). Spatial Interaction Models. In N. J. Smelser & P. B. Baltes (Eds.), International Encyclopedia of the Social & Behavioral Sciences (pp. 14794--14800). Pergamon. <https://doi.org/10.1016/B0-08-043076-7/02519-5>
 
 Miller, E. J. (2021). *Traffic Analysis Zone Definition: Issues & Guidance*. University of Toronto Faculty of Applied Science & Engineering Transportation Research Institute. <https://tmg.utoronto.ca/files/Reports/Traffic-Zone-Guidance_March-2021_Final.pdf>

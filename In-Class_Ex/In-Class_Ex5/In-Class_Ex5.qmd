@@ -1,0 +1,198 @@
+---
+title: "In-class Exercise 5"
+date: '16 December 2023'
+date-modified: 'last-modified'
+format: html
+execute: 
+  eval: true # run the code live
+  echo: true # all code will appear
+  warning: false # hide all warnings
+editor: visual
+---
+
+## Getting Started
+
+Because spflow is too new, the version on CRAN might not be the most updated version. Therefore, we can get it directly from the developer's github using the **devtools** package.
+
+```{r}
+devtools::install_github('LukeCe/spflow')
+```
+
+Now, we can load it in as part of our required packages.
+
+```{r}
+pacman::p_load(tmap, sf, spdep, sp, Matrix, spflow, reshape2, knitr, tidyverse)
+```
+
+## Data Preparation
+
+To work with **spflow,** we require:
+
+1.  Spatial Weights
+2.  A O-D, flow, distance between the origin and destination in the form of a tibble df
+3.  A tibble df of explanatory variables
+
+```{r}
+mpsz <- st_read(dsn = 'data/geospatial',
+                layer = 'MPSZ-2019') %>%
+  st_transform(crs = 3414)
+```
+
+```{r}
+busstop <- st_read(dsn = 'data/geospatial',
+                   layer = 'BusStop')%>%
+  st_transform(crs = 3414)
+```
+
+```{r}
+mpsz$`BUSSTOP_COUNT` <- lengths(st_intersects(mpsz,busstop))
+```
+
+Filter planning subzones without bus stop.
+
+```{r}
+mpsz_busstop <- mpsz %>%
+  filter(BUSSTOP_COUNT > 0)
+mpsz_busstop
+```
+
+### Preparing the Spatial Weights
+
+```{r}
+centroids <- suppressWarnings({
+  st_point_on_surface(st_geometry(mpsz_busstop))
+})
+
+mpsz_nb <- list(
+  'by_contiguity' = poly2nb(mpsz_busstop),
+  'by_distance' = dnearneigh(centroids, d1 = 0, d2 = 5000),
+  'by_knn' = knn2nb(knearneigh(centroids, 3))
+)
+```
+
+```{r}
+mpsz_nb
+```
+
+### Preparing the Flow Data
+
+```{r}
+#| eval: false
+odbus6_9 <- read_rds('data/rds/odbus6_9.rds')
+```
+
+```{r}
+mpsz_nb <- read_rds('data/rds/mpsz_nb.rds')
+mpsz_flow <- read_rds('data/rds/mpsz_flow.rds')
+mpsz_var <- read_rds('data/rds/mpsz_var.rds')
+```
+
+For our model, we choose the contiguity based neighborhood structure.
+
+```{r}
+mpsz_net <- spflow_network(
+  id_net = 'sg',
+  node_neighborhood = 
+    nb2mat(mpsz_nb$by_contiguity),
+  node_data = mpsz_var,
+  node_key_column = 'SZ_CODE'
+)
+
+mpsz_net
+```
+
+### Preparing Network Pairs
+
+```{r}
+mpsz_net_pairs <- spflow_network_pair(
+  id_orig_net = 'sg',
+  id_dest_net = 'sg',
+  pair_data = mpsz_flow,
+  orig_key_column = 'ORIGIN_SZ',
+  dest_key_column = 'DESTIN_SZ'
+)
+
+mpsz_net_pairs
+```
+
+### Creating spflow_network_multi object
+
+```{r}
+mpsz_multi_net <- spflow_network_multi(mpsz_net, mpsz_net_pairs)
+
+mpsz_multi_net
+```
+
+## Correlation Analysis
+
+```{r}
+cor_formula <- log(1+TRIPS) ~ 
+  BUSSTOP_COUNT +
+  AGE7_12 +
+  AGE13_24 +
+  AGE25_64 +
+  SCHOOL_COUNT +
+  BUSINESS_COUNT +
+  RETAILS_COUNT +
+  FINSERV_COUNT +
+  P_(log(DISTANCE + 1))
+
+cor_mat <- pair_cor(
+  mpsz_multi_net,
+  spflow_formula = cor_formula,
+  add_lags_x = FALSE
+)
+
+colnames(cor_mat) <- paste0(substr(colnames(cor_mat),1,3),'...')
+
+cor_image(cor_mat)
+```
+
+## Model Calibrartion
+
+```{r}
+base_model <- spflow(
+  spflow_formula = log(1+TRIPS) ~
+    O_(BUSSTOP_COUNT + AGE25_64) +
+    D_(SCHOOL_COUNT + 
+         BUSINESS_COUNT +
+         RETAILS_COUNT +
+         FINSERV_COUNT) +
+    P_(log(DISTANCE + 1)),
+  spflow_networks = mpsz_multi_net
+)
+
+base_model
+```
+
+```{r}
+corr_residual <- pair_cor(base_model)
+colnames(corr_residual) <- substr(colnames(corr_residual),1,3)
+cor_image(corr_residual)
+```
+
+## Working with Model Control
+
+```{r}
+
+spflow_formula <- log(1+TRIPS) ~
+  O_(BUSSTOP_COUNT + AGE25_64) +
+  D_(SCHOOL_COUNT + 
+       BUSINESS_COUNT +
+       RETAILS_COUNT +
+       FINSERV_COUNT) +
+  P_(log(DISTANCE + 1))
+
+model_control <- spflow_control(
+  estimation_method = 'mle',
+  model = "model_8"
+)
+
+mle_model8 <- spflow(
+  spflow_formula,
+  spflow_networks = mpsz_multi_net,
+  estimation_control = model_control
+)
+
+mle_model8
+```
